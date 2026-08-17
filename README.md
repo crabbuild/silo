@@ -1,18 +1,42 @@
 # SILO
 
 SILO is an immutable version-control ledger layered over S3-compatible object
-storage. It gives a bucket a durable history of object versions, commits,
+storage. It gives a bucket durable history for object versions, commits,
 branches, tags, listings, diffs, merges, recovery checkpoints, and garbage
 collection while keeping user file bodies as complete immutable provider
 objects.
 
 > **Repository status:** SILO is currently a private, closed-distribution
-> repository. The source inherits CrabBuild's MIT license, but no public crate
-> or binary release is made by the current CI workflows.
+> repository. The source is MIT-licensed, but the current CI workflows do not
+> publish a public crate or binary release.
+
+![SILO architecture](diagram/prolly-s3-architecture.svg)
+
+## Why SILO
+
+SILO combines a content-addressed payload plane with Prolly metadata trees and
+an append-only publication journal:
+
+- each distinct file body is stored as one complete immutable provider object;
+  identical bodies may be reused by content hash;
+- commits contain immutable snapshots and parent links, while branches are
+  compare-and-swap protected mutable refs;
+- commit sessions make multi-file ingestion atomic and durably resumable;
+- branch-local writer authority fences stale writers, while independent
+  branches can publish concurrently;
+- indexes and caches are advisory and rebuildable; repository refs and linked
+  publication events remain authoritative;
+- fsck, repair, history transfer, backup verification, retention pins, and GC
+  are bounded, checkpointed workflows.
+
+SILO deliberately does not pack or split user file bodies. Prolly metadata nodes
+may be packed, but they never contain user payload bytes. Larger or resumable
+transfers are completed by an external provider transfer manager and then
+handed to SILO for whole-object verification and publication.
 
 ## Capabilities
 
-- whole-object `put`, `get`, delete, list, and historical reads;
+- whole-object `put`, `get`, delete, list, range reads, and historical reads;
 - atomic multi-file commit sessions with durable checkpoints and resume;
 - branches, tags, bounded logs, diffs, reflogs, and structural merges;
 - resumable fsck, cross-provider repair, logical backup verification, and GC;
@@ -21,43 +45,147 @@ objects.
 - operation, journal, ref-catalog, and commit-graph indexes;
 - RustFS compatibility tests plus explicit AWS qualification gates.
 
-SILO deliberately does not pack or split user file bodies. One logical file is
-one complete immutable payload object. Prolly metadata nodes may be packed, but
-they never contain user payload bytes.
-
 ## Workspace
 
 | Package | Purpose | Rust floor |
 |---|---|---:|
-| [`silo-s3-core`](core) | provider-independent ledger and durable format | 1.89 |
+| [`silo-s3-core`](core) | Provider-independent ledger and durable format | 1.89 |
 | [`silo-s3-client`](client) | AWS SDK-shaped S3 provider adapter | 1.94.1 |
 
-The public client interface is `silo_s3_client::Client`.
+The workspace toolchain is pinned to Rust 1.94.1 in
+[`rust-toolchain.toml`](rust-toolchain.toml). The application-facing type is
+`silo_s3_client::Client`.
+
+## Provider requirements
+
+Initialize SILO only in a dedicated, versioned S3 or S3-compatible bucket (or
+under a prefix reserved exclusively for SILO). The provider must support:
+
+- conditional create and update writes;
+- strong read-after-write and read-after-delete behavior for GET and LIST;
+- paginated listings, physical-version listings, exact-version reads/deletes,
+  and byte-range reads;
+- a known per-key physical-version limit with enough control-record headroom;
+- no lifecycle rule or default Object Lock retention that can mutate or retain
+  repository control data unexpectedly.
+
+The client runs provider qualification probes during initialization and stores a
+signed, expiring capability attestation. Do not write, delete, or lifecycle
+manage objects inside the reserved repository prefix outside SILO.
 
 ## Quick start
 
-SILO requires an S3 or S3-compatible bucket with versioning enabled, strong
-read-after-write semantics, conditional writes, exact-version reads, and a
-repository prefix reserved exclusively for SILO.
+SILO is consumed from this workspace while it remains private:
 
 ```toml
 [dependencies]
 silo-s3-client = { path = "../silo/client", default-features = false }
 ```
 
-The complete client guide, including AWS setup and runnable Rust examples, is
-in [`client/README.md`](client/README.md).
+Create a client with the AWS SDK client and provider-attestation settings, then
+initialize a new repository once. Reopen the same repository after a restart:
+
+```rust
+let client = silo_s3_client::Client::builder()
+    .aws_client(aws)
+    .bucket("my-versioned-bucket")
+    .repository_prefix(".prolly")
+    .default_branch("main")
+    .writer("ingest-worker-01")
+    // Configure provider_identity, attestation_signer, and the provider's
+    // per-key version limit here; see client/README.md for the full example.
+    .initialize()
+    .await?;
+
+let first = client
+    .put_object("documents/readme.txt", b"first revision\n".to_vec())
+    .await?;
+
+let current = client
+    .get_object("documents/readme.txt")
+    .await?
+    .expect("current object");
+let historical = client
+    .get_object_at(first.id, "documents/readme.txt")
+    .await?
+    .expect("historical object");
+
+assert_eq!(current.bytes, historical.bytes);
+```
+
+The builder requires a provider identity, attestation signer, and explicit
+per-key version-limit attestation in a real application. See the
+[client guide](client/README.md) for a complete AWS configuration, batch
+ingestion, branch, merge, restore, transfer, cache, and telemetry examples.
 
 ## Local RustFS
 
+The repository includes a pinned RustFS service for local development and
+integration tests. Set a local data directory explicitly if the compose-file
+default is not appropriate for your machine:
+
 ```bash
+export SILO_RUSTFS_DATA_DIR="$PWD/.data/rustfs"
 docker compose -f docker-compose.rustfs.yml up -d
+
 scripts/run_rustfs_examples.sh
 ```
 
-Use `SILO_RUSTFS_*` and `SILO_S3_*` environment variables for local settings.
-The old `PROLLY_*` names are not required by the SILO repository; persisted
-repository paths and wire identifiers retain `prolly-s3` for compatibility.
+Run the opt-in provider integration suite with:
+
+```bash
+SILO_S3_RUSTFS=1 \
+  cargo test --workspace -p silo-s3-client \
+  --test rustfs_repository -- --nocapture
+```
+
+The examples and tests use `SILO_RUSTFS_ENDPOINT`,
+`SILO_RUSTFS_BUCKET`, `SILO_RUSTFS_ACCESS_KEY`, and
+`SILO_RUSTFS_SECRET_KEY` for overrides. The legacy `PROLLY_*` names are
+not required by this repository; persisted paths and wire identifiers retain
+`prolly-s3` for compatibility.
+
+## Feature flags
+
+The client enables the persistent Foyer metadata cache by default:
+
+```bash
+# Minimal client build
+cargo check -p silo-s3-client --no-default-features
+
+# Default client build with Foyer
+cargo check -p silo-s3-client --all-features
+```
+
+The optional `opentelemetry` feature exports client metrics through the
+application-owned meter. See [the cache and scale design](CACHE-AND-SCALE-DESIGN.md)
+and [the API guide](API.md) for production configuration.
+
+## Development and qualification
+
+Run the deterministic workspace checks from the repository root:
+
+```bash
+rustup show
+cargo fmt --all -- --check
+cargo test --workspace --all-features
+cargo clippy --workspace --all-targets --all-features -- -D warnings
+python3 spec/prolly-s3/conformance/verify.py
+scripts/check_clean_downstream.sh
+```
+
+Dependency and security checks require `cargo-deny`:
+
+```bash
+scripts/check_dependency_security.sh
+```
+
+RustFS and AWS qualification are intentionally opt-in. AWS runs require
+isolated operator-owned buckets and credentials; read
+[`QUALIFICATION.md`](QUALIFICATION.md) before running them. Performance
+envelopes and release criteria are documented in
+[`PERFORMANCE-ENVELOPE-2026-08-13.md`](PERFORMANCE-ENVELOPE-2026-08-13.md),
+[`GA-CONTRACT.md`](GA-CONTRACT.md), and [`RELEASING.md`](RELEASING.md).
 
 ## Documentation
 
@@ -69,30 +197,10 @@ repository paths and wire identifiers retain `prolly-s3` for compatibility.
 - [Qualification gates](QUALIFICATION.md)
 - [GA contract](GA-CONTRACT.md)
 - [Enterprise-readiness audit](ENTERPRISE-READINESS-AUDIT.md)
+- [Performance envelope](PERFORMANCE-ENVELOPE-2026-08-13.md)
 - [Durable path specification](spec/prolly-s3/paths.md)
 - [State machines](spec/prolly-s3/state-machines.md)
 - [Architecture decisions](docs/adr)
-
-## Development
-
-```bash
-rustup show
-cargo fmt --all -- --check
-cargo test --workspace --all-features
-cargo clippy --workspace --all-targets --all-features -- -D warnings
-python3 spec/prolly-s3/conformance/verify.py
-scripts/check_clean_downstream.sh
-```
-
-The RustFS provider suite is opt-in:
-
-```bash
-SILO_S3_RUSTFS=1 \
-  cargo test --workspace -p silo-s3-client --test rustfs_repository -- --nocapture
-```
-
-AWS qualification is intentionally opt-in and requires isolated operator-owned
-buckets. See [`QUALIFICATION.md`](QUALIFICATION.md) before running it.
 
 ## Compatibility promise
 
@@ -101,7 +209,20 @@ not. Domain-separated IDs, durable paths, canonical encoding, and the
 `prolly-s3` protocol namespace remain stable so repositories created before
 the extraction can be reopened by SILO.
 
+Changes to canonical encoding, durable paths, or protocol identifiers require
+a versioned compatibility decision and golden fixtures. See the
+[contribution guide](CONTRIBUTING.md) for repository invariants.
+
+## Contributing, releases, and license
+
+SILO is maintained as a private CrabBuild repository. See
+[`CONTRIBUTING.md`](CONTRIBUTING.md) for the pull-request checks and change
+rules, and [`RELEASING.md`](RELEASING.md) for the private release checklist.
+
+The source is available under the [MIT License](LICENSE).
+
 ## Security
 
-Do not report a vulnerability in a public issue. See [`SECURITY.md`](SECURITY.md)
-for the private reporting process.
+Do not report a vulnerability in a public issue. See
+[`SECURITY.md`](SECURITY.md) for the private reporting process and credential
+handling requirements.
