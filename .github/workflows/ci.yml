@@ -66,13 +66,14 @@ jobs:
       SILO_RUSTFS_ACCESS_KEY: siloadmin
       SILO_RUSTFS_SECRET_KEY: silo-local-secret-change-me
       SILO_RUSTFS_RPC_SECRET: silo-local-rpc-secret-change-me
-      SILO_RUSTFS_DATA_DIR: ${{ runner.temp }}/silo-rustfs-data
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@1.94.1
       - uses: Swatinem/rust-cache@v2
         with:
           shared-key: silo-rustfs-1.94.1
+      - name: Configure RustFS data path
+        run: echo "SILO_RUSTFS_DATA_DIR=$RUNNER_TEMP/silo-rustfs-data" >> "$GITHUB_ENV"
       - name: Prepare RustFS data directory
         run: sudo install -d -o 10001 -g 10001 -m 0750 "$SILO_RUSTFS_DATA_DIR"
       - name: Start pinned RustFS
