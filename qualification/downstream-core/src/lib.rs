@@ -1,4 +1,4 @@
-use prolly_s3_core::{CommitId, ErrorCode, ObjectVersionId, RepositoryOptions};
+use silo_s3_core::{CommitId, ErrorCode, ObjectVersionId, RepositoryOptions};
 
 pub fn compile_core_surface(
     commit: CommitId,

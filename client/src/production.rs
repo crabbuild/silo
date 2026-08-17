@@ -1,6 +1,6 @@
 use std::{path::PathBuf, time::Duration};
 
-use prolly_s3_core::{
+use silo_s3_core::{
     BoundaryInput, BoundaryRule, ChunkMeasure, ChunkingSpec, HashAlgorithm, NodeCachePrewarmReport,
     NodeCacheSnapshot, NodeLayoutSpec, TreeFormat,
 };
@@ -226,7 +226,7 @@ pub fn production_metadata_tree_format() -> TreeFormat {
             hard_max_node_bytes: 256 * 1024,
         },
         node_layout: NodeLayoutSpec::PrefixCompressed,
-        value_encoding: prolly_s3_core::Encoding::Raw,
+        value_encoding: silo_s3_core::Encoding::Raw,
     }
 }
 

@@ -1,4 +1,4 @@
-use prolly_s3_client::{
+use silo_s3_client::{
     core::{CommitId, CommitReceipt, ObjectData},
     Client, Result, S3WireAttemptInterceptor,
 };

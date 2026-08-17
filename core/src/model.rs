@@ -299,7 +299,7 @@ impl ProviderCapabilities {
         if self.physical_versioning != PhysicalVersioning::Enabled {
             return Err(Error::new(
                 ErrorCode::ProviderNotQualified,
-                "Prolly S3 repositories require bucket versioning to be enabled",
+                "SILO repositories require bucket versioning to be enabled",
             ));
         }
         if self.max_single_put_bytes == 0 || self.max_object_bytes == 0 {

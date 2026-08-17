@@ -1,5 +1,5 @@
 [package]
-name = "prolly-s3-downstream-core-check"
+name = "silo-s3-downstream-core-check"
 version = "0.0.0"
 edition = "2021"
 rust-version = "1.89"
@@ -8,4 +8,4 @@ publish = false
 [workspace]
 
 [dependencies]
-prolly-s3-core = { path = "../../core", default-features = false }
+silo-s3-core = { path = "../../core", default-features = false }

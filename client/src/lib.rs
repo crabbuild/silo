@@ -1,4 +1,4 @@
-//! AWS SDK-shaped adapter for [`prolly_s3_core`].
+//! AWS SDK-shaped adapter for [`silo_s3_core`].
 
 mod aws_object;
 #[cfg(feature = "foyer-cache")]
@@ -17,9 +17,9 @@ pub use production::{
     production_metadata_tree_format, CacheSizingRecommendation, ClientStartupMetrics,
     ProductionCacheProfile, ProviderDeployment, SupportStatus, SupportedEnvelope,
 };
-pub use prolly_s3_core as core;
-pub use prolly_s3_core::{Error, ErrorCode, Result};
 pub use provider::*;
+pub use silo_s3_core as core;
+pub use silo_s3_core::{Error, ErrorCode, Result};
 #[cfg(feature = "opentelemetry")]
 pub use telemetry::OpenTelemetryClientMetrics;
 pub use telemetry::{

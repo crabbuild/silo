@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-manifest="extensions/s3/Cargo.toml"
+repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+manifest="$repo_root/Cargo.toml"
 examples=(
   basic_object_workflow
   atomic_batch_and_streaming
@@ -11,15 +12,15 @@ examples=(
   integrity_gc_and_observability
 )
 
-if ! curl -fsS "${PROLLY_RUSTFS_ENDPOINT:-http://127.0.0.1:9000}/health" >/dev/null; then
-  echo "RustFS is not healthy. Start extensions/s3/docker-compose.rustfs.yml first." >&2
+if ! curl -fsS "${SILO_RUSTFS_ENDPOINT:-http://127.0.0.1:9000}/health" >/dev/null; then
+  echo "RustFS is not healthy. Start docker-compose.rustfs.yml from the SILO repository first." >&2
   exit 1
 fi
 
 for example in "${examples[@]}"; do
   echo "RUNNING_EXAMPLE name=$example"
   cargo run --locked --manifest-path "$manifest" \
-    -p prolly-s3-client --example "$example"
+    -p silo-s3-client --example "$example"
 done
 
 echo "RUSTFS_EXAMPLES_COMPLETE count=${#examples[@]}"

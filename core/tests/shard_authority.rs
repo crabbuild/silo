@@ -1,6 +1,6 @@
 use std::{sync::Arc, time::Duration};
 
-use prolly_s3_core::{
+use silo_s3_core::{
     AuthorityScope, ErrorCode, MemoryObjectPlane, OperationId, RepositoryId, ShardWriterAuthority,
     TakeoverRequest,
 };

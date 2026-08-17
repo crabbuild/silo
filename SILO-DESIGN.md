@@ -1,8 +1,8 @@
-# Prolly S3 architecture
+# SILO architecture
 
 ## Purpose
 
-Prolly S3 is a thin repository layer over a versioned S3 bucket. The client is
+SILO is a thin repository layer over a versioned S3 bucket. The client is
 the authoritative writer. It stores each file as one immutable payload and uses
 Prolly trees to track names, metadata, commits, branches, and history.
 

@@ -1,11 +1,15 @@
 [package]
-name = "prolly-s3-client"
-description = "AWS SDK-shaped client for bucket-level versioned S3 repositories."
+name = "silo-s3-client"
+description = "AWS SDK-shaped client for the SILO immutable version-control ledger."
 edition = "2021"
 rust-version = "1.94.1"
 version = "0.1.0"
-license = "MIT OR Apache-2.0"
-repository = "https://github.com/crabbuild/prolly"
+license = "MIT"
+repository = "https://github.com/crabbuild/silo"
+homepage = "https://github.com/crabbuild/silo"
+readme = "README.md"
+keywords = ["s3", "object-storage", "version-control", "prolly-tree"]
+categories = ["database-implementations", "filesystem"]
 
 [features]
 default = ["foyer-cache"]
@@ -26,7 +30,7 @@ http-body = "1"
 md-5 = "0.10"
 hex = "0.4"
 opentelemetry = { version = "=0.32.0", default-features = false, features = ["metrics"], optional = true }
-prolly-s3-core = { path = "../core", version = "0.1.0" }
+silo-s3-core = { path = "../core", version = "0.1.0" }
 serde = { version = "1.0", features = ["derive"] }
 sha2 = "0.10"
 tempfile = "3.23"

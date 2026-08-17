@@ -1,6 +1,6 @@
 use std::{collections::BTreeMap, sync::Arc, time::Duration};
 
-use prolly_s3_core::{
+use silo_s3_core::{
     AuthorityScope, AuthorityStamp, BucketCommit, BucketDelta, BucketState, CommitGeneration,
     CommitId, CommitPublication, IdempotencyRetention, MemoryObjectPlane, ObjectPath, ObjectPlane,
     OperationId, OperationIndexHead, RefGeneration, RepositoryId, RootManifest,
@@ -178,7 +178,7 @@ async fn branch_local_lsm_index_catches_up_tail_merges_segments_and_prunes_reten
         .await
         .unwrap()
         .unwrap();
-    let head: OperationIndexHead = prolly_s3_core::decode_canonical(&head.bytes).unwrap();
+    let head: OperationIndexHead = silo_s3_core::decode_canonical(&head.bytes).unwrap();
     assert!(head.levels.len() <= 2);
     assert!(head.levels.iter().all(|level| level.len() < 2));
 }

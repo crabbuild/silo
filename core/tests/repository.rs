@@ -1,13 +1,13 @@
 use std::{collections::BTreeMap, io::Write as _, sync::Arc};
 
 use md5::{Digest as _, Md5};
-use prolly_s3_core::{
+use sha2::Sha256;
+use silo_s3_core::{
     decode_canonical, encode_canonical, BoundaryRule, FixedClock, GetRequest, ListRequest,
     LogicalObjectVersionKind, MemoryNodeCache, MemoryObjectPlane, ObjectHeaders, ObjectPath,
     ObjectPlane, ProviderPerKeyVersionLimit, Repository, RepositoryOptions, SequenceIdSource,
     TreeFormat,
 };
-use sha2::Sha256;
 
 #[tokio::test]
 async fn repository_cache_snapshot_includes_ref_catalog_reads_after_reopen() {
@@ -173,7 +173,7 @@ async fn repository_put_read_replay_and_reopen_use_only_authority() {
             .await
             .unwrap_err()
             .code,
-        prolly_s3_core::ErrorCode::InvalidLimit
+        silo_s3_core::ErrorCode::InvalidLimit
     );
     let replay = repository
         .put_object_with_operation(
@@ -519,7 +519,7 @@ async fn object_list_cursor_is_snapshot_bound_and_resumes_without_replay() {
         .unwrap_err();
     assert_eq!(
         error.code,
-        prolly_s3_core::ErrorCode::InvalidContinuationToken
+        silo_s3_core::ErrorCode::InvalidContinuationToken
     );
 
     plane.reset_request_counts();
@@ -546,7 +546,7 @@ async fn object_list_cursor_is_snapshot_bound_and_resumes_without_replay() {
         .unwrap_err();
     assert_eq!(
         error.code,
-        prolly_s3_core::ErrorCode::InvalidContinuationToken
+        silo_s3_core::ErrorCode::InvalidContinuationToken
     );
 }
 
@@ -597,7 +597,7 @@ async fn repository_takeover_fences_old_writer_before_payload_put() {
         )
         .await
         .unwrap_err();
-    assert_eq!(error.code, prolly_s3_core::ErrorCode::PreconditionFailed);
+    assert_eq!(error.code, silo_s3_core::ErrorCode::PreconditionFailed);
     assert_eq!(plane.request_snapshot().immutable_put, 0);
 
     replacement
@@ -659,7 +659,7 @@ async fn repository_writable_reopen_reacquires_authority_and_fences_the_old_hand
     let renewal_error = old.renew_shard_authorities().await.unwrap_err();
     assert_eq!(
         renewal_error.code,
-        prolly_s3_core::ErrorCode::PreconditionFailed
+        silo_s3_core::ErrorCode::PreconditionFailed
     );
     assert_eq!(old.fenced_branches().unwrap(), vec!["main"]);
     let error = old
@@ -672,7 +672,7 @@ async fn repository_writable_reopen_reacquires_authority_and_fences_the_old_hand
         )
         .await
         .unwrap_err();
-    assert_eq!(error.code, prolly_s3_core::ErrorCode::PreconditionFailed);
+    assert_eq!(error.code, silo_s3_core::ErrorCode::PreconditionFailed);
     assert_eq!(plane.request_snapshot().immutable_put, 0);
 }
 
@@ -862,7 +862,7 @@ async fn durable_checkpoint_windows_are_append_only_and_resume_last_write_per_ke
             .unwrap()
             .unwrap();
         windows.push(
-            decode_canonical::<prolly_s3_core::CommitSessionCheckpoint>(&stored.bytes).unwrap(),
+            decode_canonical::<silo_s3_core::CommitSessionCheckpoint>(&stored.bytes).unwrap(),
         );
     }
     windows.sort_by_key(|window| window.sequence);
@@ -1013,14 +1013,14 @@ async fn real_takeover_fences_an_open_commit_session() {
         .publish_commit_session(checkpoint.session.clone(), vec![staged])
         .await
         .unwrap_err();
-    assert_eq!(error.code, prolly_s3_core::ErrorCode::PreconditionFailed);
+    assert_eq!(error.code, silo_s3_core::ErrorCode::PreconditionFailed);
     let resume_error = replacement
         .resume_commit_session(checkpoint.session.id)
         .await
         .unwrap_err();
     assert_eq!(
         resume_error.code,
-        prolly_s3_core::ErrorCode::PreconditionFailed
+        silo_s3_core::ErrorCode::PreconditionFailed
     );
 }
 
@@ -1073,7 +1073,7 @@ async fn repository_commit_session_batches_payloads_into_one_replayable_publicat
         .unwrap();
     let mutations = vec![
         second,
-        prolly_s3_core::StagedMutation::delete(b"batch/removed.txt".to_vec()),
+        silo_s3_core::StagedMutation::delete(b"batch/removed.txt".to_vec()),
         first,
     ];
 
@@ -1216,7 +1216,7 @@ async fn repository_batch_stages_independent_whole_objects_with_whole_object_ded
     assert_eq!(range.range, 1..=2);
 
     let mut fsck = repository.start_fsck("main", true).await.unwrap();
-    while fsck.phase != prolly_s3_core::FsckPhase::Complete {
+    while fsck.phase != silo_s3_core::FsckPhase::Complete {
         let page = repository.advance_fsck(&fsck, 100).await.unwrap();
         fsck = decode_canonical(&encode_canonical(&page.cursor).unwrap()).unwrap();
     }
@@ -1274,7 +1274,7 @@ async fn repository_batch_results_isolates_invalid_objects_after_one_session_val
     assert_eq!(results.len(), 3);
     assert_eq!(
         results[1].as_ref().unwrap_err().code,
-        prolly_s3_core::ErrorCode::InvalidKey
+        silo_s3_core::ErrorCode::InvalidKey
     );
     // Two whole-object payloads plus immutable intent and completion manifests.
     assert_eq!(plane.request_snapshot().immutable_put, 4);
@@ -1471,7 +1471,7 @@ async fn repository_expired_session_cleanup_is_bounded_and_exact() {
         .resume_commit_session(checkpoint.session.id)
         .await
         .unwrap_err();
-    assert_eq!(error.code, prolly_s3_core::ErrorCode::InvalidRequest);
+    assert_eq!(error.code, silo_s3_core::ErrorCode::InvalidRequest);
 }
 
 #[tokio::test]
@@ -1516,7 +1516,7 @@ async fn repository_cold_reads_fail_fast_until_background_indexes_catch_up() {
     );
     plane.reset_request_counts();
     let error = reader.get_object("main", b"cold/2.txt").await.unwrap_err();
-    assert_eq!(error.code, prolly_s3_core::ErrorCode::MissingClosure);
+    assert_eq!(error.code, silo_s3_core::ErrorCode::MissingClosure);
     assert!(
         plane.request_snapshot().get <= 3,
         "a foreground read may inspect ref/index heads but must not replay the journal tail"
@@ -1594,7 +1594,7 @@ async fn repository_over_limit_index_lag_rebuilds_in_restartable_pages() {
     .await
     .unwrap();
     let error = reader.advance_branch_indexes("main").await.unwrap_err();
-    assert_eq!(error.code, prolly_s3_core::ErrorCode::HistoryLimitExceeded);
+    assert_eq!(error.code, silo_s3_core::ErrorCode::HistoryLimitExceeded);
     assert!(!reader.branch_index_health("main").await.unwrap().ready);
 
     let mut cursor = reader.start_branch_index_rebuild("main").await.unwrap();
@@ -1602,8 +1602,8 @@ async fn repository_over_limit_index_lag_rebuilds_in_restartable_pages() {
     loop {
         // A workflow may persist this canonical cursor and resume in another
         // process between every bounded step.
-        let encoded = prolly_s3_core::encode_canonical(&cursor).unwrap();
-        cursor = prolly_s3_core::decode_canonical(&encoded).unwrap();
+        let encoded = silo_s3_core::encode_canonical(&cursor).unwrap();
+        cursor = silo_s3_core::decode_canonical(&encoded).unwrap();
         let step = reader
             .advance_branch_index_rebuild(&cursor, 2)
             .await
@@ -1641,11 +1641,11 @@ async fn repository_over_limit_index_lag_rebuilds_in_restartable_pages() {
         .unwrap_err();
     assert_eq!(
         early_cleanup.code,
-        prolly_s3_core::ErrorCode::InvalidContinuationToken
+        silo_s3_core::ErrorCode::InvalidContinuationToken
     );
     loop {
-        let encoded = prolly_s3_core::encode_canonical(&operation).unwrap();
-        operation = prolly_s3_core::decode_canonical(&encoded).unwrap();
+        let encoded = silo_s3_core::encode_canonical(&operation).unwrap();
+        operation = silo_s3_core::decode_canonical(&encoded).unwrap();
         let step = reader
             .advance_operation_index_rebuild(&operation, 2)
             .await
@@ -1790,7 +1790,7 @@ async fn repository_ref_lifecycle_uses_event_driven_sharded_catalogs() {
 
     plane.reset_request_counts();
     let repair = repository
-        .repair_ref_catalog_page(prolly_s3_core::RefKind::Branch, None, 100)
+        .repair_ref_catalog_page(silo_s3_core::RefKind::Branch, None, 100)
         .await
         .unwrap();
     assert_eq!(repair.scanned, 2);

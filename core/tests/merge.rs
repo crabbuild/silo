@@ -1,6 +1,6 @@
 use std::{collections::BTreeMap, sync::Arc, time::Instant};
 
-use prolly_s3_core::{
+use silo_s3_core::{
     decode_canonical, encode_canonical, FixedClock, LogicalObjectVersionKind, MemoryObjectPlane,
     MergeCursor, MergePhase, MergePolicy, ObjectHeaders, ProviderPerKeyVersionLimit, Repository,
     RepositoryOptions, SequenceIdSource,
@@ -71,7 +71,7 @@ async fn repository_merge_is_structural_paged_restartable_and_replayable() {
             .await
             .unwrap_err()
             .code,
-        prolly_s3_core::ErrorCode::InvalidContinuationToken
+        silo_s3_core::ErrorCode::InvalidContinuationToken
     );
     drop(repository);
 
@@ -206,7 +206,7 @@ async fn repository_fail_policy_persists_conflicts_without_publication() {
     assert_eq!(cursor.conflicts, 1);
     assert_eq!(
         repository.publish_merge(&cursor).await.unwrap_err().code,
-        prolly_s3_core::ErrorCode::PreconditionFailed
+        silo_s3_core::ErrorCode::PreconditionFailed
     );
 }
 
@@ -293,7 +293,7 @@ async fn repository_merge_refuses_to_publish_after_the_target_branch_moves() {
     let moved = repository.head("main").await.unwrap();
 
     let error = repository.publish_merge(&cursor).await.unwrap_err();
-    assert_eq!(error.code, prolly_s3_core::ErrorCode::RefConflict);
+    assert_eq!(error.code, silo_s3_core::ErrorCode::RefConflict);
     assert_eq!(repository.head("main").await.unwrap(), moved);
     assert!(repository.fenced_branches().unwrap().is_empty());
     assert!(repository

@@ -5,7 +5,7 @@ mod common;
 use std::time::Duration;
 
 use common::ExampleResult;
-use prolly_s3_client::{
+use silo_s3_client::{
     core::{FsckPhase, GcPhase},
     Client,
 };
@@ -79,7 +79,7 @@ async fn main() -> ExampleResult {
 async fn run_gc(
     client: &Client,
     grace_millis: u64,
-) -> ExampleResult<prolly_s3_client::core::GcCursor> {
+) -> ExampleResult<silo_s3_client::core::GcCursor> {
     let mut gc = client.start_gc(grace_millis).await?;
     loop {
         gc = match gc.phase {

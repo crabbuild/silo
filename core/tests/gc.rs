@@ -1,17 +1,17 @@
 use std::{collections::BTreeMap, sync::Arc, time::Duration};
 
-use prolly_s3_core::{
+use sha2::{Digest, Sha256};
+use silo_s3_core::{
     FixedClock, GcPhase, ImmutablePut, ListRequest, MemoryObjectPlane, ObjectHeaders, ObjectPath,
     ObjectPlane, PhysicalVersion, Repository, RepositoryOptions,
 };
-use sha2::{Digest, Sha256};
 
 #[tokio::test]
 async fn gc_fences_cross_handle_publications_and_deletes_exact_orphans() {
     let plane = Arc::new(MemoryObjectPlane::new(true));
     let options = RepositoryOptions {
         repository_prefix: ".tests/gc".to_string(),
-        provider_per_key_version_limit: prolly_s3_core::ProviderPerKeyVersionLimit::Finite(10_000),
+        provider_per_key_version_limit: silo_s3_core::ProviderPerKeyVersionLimit::Finite(10_000),
         ..RepositoryOptions::default()
     };
     let repository = Repository::initialize(plane.clone(), options.clone())
@@ -119,10 +119,7 @@ async fn gc_fences_cross_handle_publications_and_deletes_exact_orphans() {
         )
         .await
         .unwrap_err();
-    assert_eq!(
-        during_gc.code,
-        prolly_s3_core::ErrorCode::PreconditionFailed
-    );
+    assert_eq!(during_gc.code, silo_s3_core::ErrorCode::PreconditionFailed);
     for _ in 0..10_000 {
         if gc.phase == GcPhase::Ready {
             break;
@@ -145,7 +142,7 @@ async fn gc_fences_cross_handle_publications_and_deletes_exact_orphans() {
         .unwrap_err();
     assert_eq!(
         before_sweep.code,
-        prolly_s3_core::ErrorCode::PreconditionFailed
+        silo_s3_core::ErrorCode::PreconditionFailed
     );
     drop(repository);
     let repository = Repository::open(plane.clone(), options).await.unwrap();
@@ -154,7 +151,7 @@ async fn gc_fences_cross_handle_publications_and_deletes_exact_orphans() {
         plane.clone(),
         RepositoryOptions {
             repository_prefix: ".tests/gc".to_string(),
-            provider_per_key_version_limit: prolly_s3_core::ProviderPerKeyVersionLimit::Finite(
+            provider_per_key_version_limit: silo_s3_core::ProviderPerKeyVersionLimit::Finite(
                 10_000,
             ),
             ..RepositoryOptions::default()
@@ -174,7 +171,7 @@ async fn gc_fences_cross_handle_publications_and_deletes_exact_orphans() {
         .unwrap_err();
     assert_eq!(
         restart_fence.code,
-        prolly_s3_core::ErrorCode::PreconditionFailed
+        silo_s3_core::ErrorCode::PreconditionFailed
     );
 
     for _ in 0..10_000 {
@@ -230,7 +227,7 @@ async fn journaled_gc_discovers_unpublished_batch_payloads_without_namespace_pay
     let options = RepositoryOptions {
         repository_prefix: ".tests/gc-journal".to_string(),
         clock: clock.clone(),
-        provider_per_key_version_limit: prolly_s3_core::ProviderPerKeyVersionLimit::Finite(10_000),
+        provider_per_key_version_limit: silo_s3_core::ProviderPerKeyVersionLimit::Finite(10_000),
         ..RepositoryOptions::default()
     };
     let repository = Repository::initialize(plane.clone(), options)
@@ -311,7 +308,7 @@ async fn journaled_gc_falls_back_to_precompletion_intents_after_an_interrupted_u
     let options = RepositoryOptions {
         repository_prefix: ".tests/gc-journal-intent".to_string(),
         clock: clock.clone(),
-        provider_per_key_version_limit: prolly_s3_core::ProviderPerKeyVersionLimit::Finite(10_000),
+        provider_per_key_version_limit: silo_s3_core::ProviderPerKeyVersionLimit::Finite(10_000),
         ..RepositoryOptions::default()
     };
     let repository = Repository::initialize(plane.clone(), options)
@@ -361,7 +358,7 @@ async fn journaled_gc_falls_back_to_precompletion_intents_after_an_interrupted_u
             .delete_exact(&completion.path, completion_version)
             .await
             .unwrap(),
-        prolly_s3_core::DeleteOutcome::Deleted
+        silo_s3_core::DeleteOutcome::Deleted
     );
 
     plane.reset_request_counts();

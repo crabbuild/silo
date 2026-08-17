@@ -1,4 +1,4 @@
-# Prolly S3 durable paths
+# SILO durable paths
 
 `P` is the configured repository prefix. Path names are part of the sole
 repository format.
@@ -40,7 +40,7 @@ byte pairs. `SS` is a two-digit ref-catalog shard.
 
 ## Rules
 
-- The repository prefix is reserved exclusively for Prolly S3.
+- The repository prefix is reserved exclusively for SILO.
 - Immutable paths are create-once. Existing unequal bytes are corruption.
 - Mutable records use exact physical-version compare-and-swap.
 - Branch refs point to immutable publication events; the event points to the

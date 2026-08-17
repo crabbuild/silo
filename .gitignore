@@ -1,0 +1,26 @@
+# Rust build output
+/target/
+**/target/
+
+# Local credentials and provider state
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.crt
+
+# Local RustFS data and logs
+/.rustfs/
+/.silo-data/
+*.log
+
+# IDE and OS files
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# Qualification output
+/performance-results/
+/qualification/**/target/

@@ -1,7 +1,7 @@
 #[cfg(feature = "opentelemetry")]
 use std::sync::Arc;
 
-use prolly_s3_core::NodeCacheSnapshot;
+use silo_s3_core::NodeCacheSnapshot;
 
 use crate::{ClientStartupMetrics, S3OperationMetrics};
 
@@ -230,7 +230,7 @@ mod tests {
 
     #[test]
     fn opentelemetry_sink_accepts_startup_and_interval_metrics() {
-        let sink = OpenTelemetryClientMetrics::new(opentelemetry::global::meter("test-prolly-s3"));
+        let sink = OpenTelemetryClientMetrics::new(opentelemetry::global::meter("test-silo"));
         let context = ClientTelemetryContext {
             repository_id: "pr_test".to_string(),
             provider: "s3-compatible".to_string(),

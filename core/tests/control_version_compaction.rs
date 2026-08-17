@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use prolly_s3_core::{
+use silo_s3_core::{
     classify_mutable_control_path, CompareExchange, CompareExchangeOutcome, ErrorCode, ListRequest,
     MemoryObjectPlane, MutableControlKind, MutableControlStore, ObjectPath, ObjectPlane,
 };

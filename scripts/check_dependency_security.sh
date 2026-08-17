@@ -28,6 +28,6 @@ do
 done
 
 cargo tree --manifest-path "$security_root/Cargo.toml" --workspace --all-features \
-  -i rustls-webpki@0.103.13 >/dev/null
+  -i rustls-webpki@0.103.14 >/dev/null
 
 echo "DEPENDENCY_SECURITY_COMPLETE advisories=approved-only tls=rustls-0.23 foyer=0.22.3-pinned"

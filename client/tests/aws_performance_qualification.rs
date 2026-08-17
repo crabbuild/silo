@@ -6,12 +6,12 @@ use std::{
 use aws_config::BehaviorVersion;
 use aws_sdk_s3::{config::Region, types::BucketVersioningStatus};
 use futures_util::{stream, StreamExt};
-use prolly_s3_client::{
+use silo_s3_client::{
     core::ProviderPerKeyVersionLimit, Client, HmacAttestationSigner, ProviderIdentity,
 };
 
 fn enabled() -> bool {
-    std::env::var("PROLLY_S3_AWS_PERF").as_deref() == Ok("1")
+    std::env::var("SILO_S3_AWS_PERF").as_deref() == Ok("1")
 }
 
 fn required_alias<T: std::str::FromStr>(name: &str, legacy: &str) -> T
@@ -35,30 +35,28 @@ fn percentile(sorted: &[std::time::Duration], percentile: usize) -> std::time::D
 async fn aws_hot_branch_performance_release_gate() {
     assert!(
         enabled(),
-        "set PROLLY_S3_AWS_PERF=1 plus the documented AWS performance variables to run"
+        "set SILO_S3_AWS_PERF=1 plus the documented AWS performance variables to run"
     );
 
-    let region_name = std::env::var("PROLLY_S3_AWS_REGION")
-        .or_else(|_| std::env::var("PROLLY_AWS_REGION"))
-        .expect("PROLLY_S3_AWS_REGION is required");
-    let bucket = std::env::var("PROLLY_S3_AWS_BUCKET")
-        .or_else(|_| std::env::var("PROLLY_AWS_BUCKET_VERSIONED"))
-        .expect("PROLLY_S3_AWS_BUCKET is required");
+    let region_name = std::env::var("SILO_S3_AWS_REGION")
+        .or_else(|_| std::env::var("SILO_AWS_REGION"))
+        .expect("SILO_S3_AWS_REGION is required");
+    let bucket = std::env::var("SILO_S3_AWS_BUCKET")
+        .or_else(|_| std::env::var("SILO_AWS_BUCKET_VERSIONED"))
+        .expect("SILO_S3_AWS_BUCKET is required");
     let writes_per_tier: usize = required_alias(
-        "PROLLY_S3_AWS_PERF_WRITES_PER_TIER",
-        "PROLLY_AWS_PERF_WRITES_PER_TIER",
+        "SILO_S3_AWS_PERF_WRITES_PER_TIER",
+        "SILO_AWS_PERF_WRITES_PER_TIER",
     );
-    let max_p99_millis: u128 = required_alias(
-        "PROLLY_S3_AWS_PERF_MAX_P99_MS",
-        "PROLLY_AWS_PERF_MAX_P99_MS",
-    );
+    let max_p99_millis: u128 =
+        required_alias("SILO_S3_AWS_PERF_MAX_P99_MS", "SILO_AWS_PERF_MAX_P99_MS");
     let min_writes_per_second: f64 = required_alias(
-        "PROLLY_S3_AWS_PERF_MIN_WRITES_PER_SECOND",
-        "PROLLY_AWS_PERF_MIN_WRITES_PER_SECOND",
+        "SILO_S3_AWS_PERF_MIN_WRITES_PER_SECOND",
+        "SILO_AWS_PERF_MIN_WRITES_PER_SECOND",
     );
     let max_calls_per_write: u64 = required_alias(
-        "PROLLY_S3_AWS_PERF_MAX_CALLS_PER_WRITE",
-        "PROLLY_AWS_PERF_MAX_CALLS_PER_WRITE",
+        "SILO_S3_AWS_PERF_MAX_CALLS_PER_WRITE",
+        "SILO_AWS_PERF_MAX_CALLS_PER_WRITE",
     );
 
     let shared = aws_config::defaults(BehaviorVersion::latest())
@@ -83,7 +81,7 @@ async fn aws_hot_branch_performance_release_gate() {
     let client = Client::builder()
         .aws_client(aws)
         .bucket(&bucket)
-        .repository_prefix(format!("prolly-s3-performance/{run_id}"))
+        .repository_prefix(format!("silo-performance/{run_id}"))
         .writer(format!("aws-performance-{run_id}"))
         .provider_identity(ProviderIdentity::aws_region(region_name.clone()))
         .attestation_signer(Arc::new(

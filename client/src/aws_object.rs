@@ -14,13 +14,13 @@ use aws_sdk_s3::{
 };
 use aws_smithy_types::error::metadata::ProvideErrorMetadata;
 use aws_types::request_id::RequestId;
-use prolly_s3_core::{
+use sha2::{Digest, Sha256};
+use silo_s3_core::{
     CompareExchange, CompareExchangeOutcome, DeleteOutcome, Error, ErrorCode, GetRequest,
     ImmutableFilePut, ImmutablePut, ImmutablePutOutcome, ListRequest, ObjectPath, ObjectPlane,
     PhysicalListEntry, PhysicalListPage, PhysicalVersion, Result, RetryAdvice, StorageToken,
     StoredMetadata, StoredObject,
 };
-use sha2::{Digest, Sha256};
 const MAX_SINGLE_PUT_BYTES: u64 = 5 * 1_024 * 1_024 * 1_024;
 
 /// Object-plane calls issued to the AWS SDK and body bytes handed to or
@@ -795,7 +795,7 @@ mod tests {
     use aws_types::request_id::RequestId;
 
     use super::map_sdk_error;
-    use prolly_s3_core::{ErrorCode, RetryAdvice};
+    use silo_s3_core::{ErrorCode, RetryAdvice};
 
     #[derive(Debug)]
     struct ServiceFailure {

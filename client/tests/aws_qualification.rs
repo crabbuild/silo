@@ -2,7 +2,7 @@ use std::{sync::Arc, time::SystemTime};
 
 use aws_config::BehaviorVersion;
 use aws_sdk_s3::{config::Region, types::BucketVersioningStatus};
-use prolly_s3_client::{
+use silo_s3_client::{
     core::{
         CompareExchange, CompareExchangeOutcome, ObjectPath, ObjectPlane,
         ProviderPerKeyVersionLimit,
@@ -11,7 +11,7 @@ use prolly_s3_client::{
 };
 
 fn enabled() -> bool {
-    environment("PROLLY_S3_AWS_QUALIFICATION", "PROLLY_S3_AWS").as_deref() == Some("1")
+    environment("SILO_S3_AWS_QUALIFICATION", "SILO_S3_AWS").as_deref() == Some("1")
 }
 
 fn environment(primary: &str, legacy: &str) -> Option<String> {
@@ -25,7 +25,7 @@ fn unique_prefix(profile: &str) -> String {
         .duration_since(SystemTime::UNIX_EPOCH)
         .expect("system clock")
         .as_nanos();
-    format!("prolly-s3-qualification/{profile}/{nanos}")
+    format!("silo-qualification/{profile}/{nanos}")
 }
 
 fn signer() -> Arc<HmacAttestationSigner> {
@@ -58,26 +58,24 @@ async fn assert_policy_bucket_rejected(
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn aws_general_purpose_bucket_qualification_matrix() {
     if !enabled() {
-        eprintln!(
-            "set PROLLY_S3_AWS_QUALIFICATION=1 and the documented AWS bucket variables to run"
-        );
+        eprintln!("set SILO_S3_AWS_QUALIFICATION=1 and the documented AWS bucket variables to run");
         return;
     }
-    let region_name = environment("PROLLY_S3_AWS_REGION", "PROLLY_AWS_REGION")
-        .expect("PROLLY_S3_AWS_REGION is required when AWS qualification is enabled");
+    let region_name = environment("SILO_S3_AWS_REGION", "SILO_AWS_REGION")
+        .expect("SILO_S3_AWS_REGION is required when AWS qualification is enabled");
     let shared = aws_config::defaults(BehaviorVersion::latest())
         .region(Region::new(region_name.clone()))
         .load()
         .await;
     let aws = aws_sdk_s3::Client::new(&shared);
 
-    if let Ok(bucket) = std::env::var("PROLLY_S3_AWS_BUCKET_LIFECYCLE") {
+    if let Ok(bucket) = std::env::var("SILO_S3_AWS_BUCKET_LIFECYCLE") {
         assert_policy_bucket_rejected(&aws, &bucket, &region_name, "lifecycle").await;
     }
-    if let Ok(bucket) = std::env::var("PROLLY_S3_AWS_BUCKET_OBJECT_LOCK_DEFAULT") {
+    if let Ok(bucket) = std::env::var("SILO_S3_AWS_BUCKET_OBJECT_LOCK_DEFAULT") {
         assert_policy_bucket_rejected(&aws, &bucket, &region_name, "object-lock-default").await;
     }
-    if let Ok(bucket) = std::env::var("PROLLY_S3_AWS_BUCKET_REPLICATED") {
+    if let Ok(bucket) = std::env::var("SILO_S3_AWS_BUCKET_REPLICATED") {
         let replicated = Client::builder()
             .aws_client(aws.clone())
             .bucket(&bucket)
@@ -92,7 +90,7 @@ async fn aws_general_purpose_bucket_qualification_matrix() {
         assert!(replicated.provider_capabilities().replication_enabled);
     }
 
-    if let Ok(bucket) = std::env::var("PROLLY_AWS_BUCKET_UNVERSIONED") {
+    if let Ok(bucket) = std::env::var("SILO_AWS_BUCKET_UNVERSIONED") {
         let result = Client::builder()
             .aws_client(aws.clone())
             .bucket(&bucket)
@@ -110,8 +108,8 @@ async fn aws_general_purpose_bucket_qualification_matrix() {
         assert_eq!(error.code, ErrorCode::ProviderNotQualified);
     }
 
-    let bucket = environment("PROLLY_S3_AWS_BUCKET", "PROLLY_AWS_BUCKET_VERSIONED")
-        .expect("PROLLY_S3_AWS_BUCKET is required");
+    let bucket = environment("SILO_S3_AWS_BUCKET", "SILO_AWS_BUCKET_VERSIONED")
+        .expect("SILO_S3_AWS_BUCKET is required");
     let status = aws
         .get_bucket_versioning()
         .bucket(&bucket)

@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use prolly::TreeFormat;
-use prolly_s3_core::{
+use silo_s3_core::{
     ref_catalog_shard, CommitId, MemoryObjectPlane, OperationId, RefGeneration, RefKind,
     RepositoryId, ShardedRefCatalog,
 };

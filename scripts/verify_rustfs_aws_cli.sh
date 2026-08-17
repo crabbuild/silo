@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-endpoint="${PROLLY_RUSTFS_ENDPOINT:-http://127.0.0.1:9000}"
-access_key="${PROLLY_RUSTFS_ACCESS_KEY:-prollyadmin}"
-secret_key="${PROLLY_RUSTFS_SECRET_KEY:-prolly-local-secret-change-me}"
-region="${PROLLY_RUSTFS_REGION:-us-east-1}"
-bucket="${PROLLY_RUSTFS_BUCKET:-prolly-versioned-s3-demo}"
+endpoint="${SILO_RUSTFS_ENDPOINT:-http://127.0.0.1:9000}"
+access_key="${SILO_RUSTFS_ACCESS_KEY:-siloadmin}"
+secret_key="${SILO_RUSTFS_SECRET_KEY:-silo-local-secret-change-me}"
+region="${SILO_RUSTFS_REGION:-us-east-1}"
+bucket="${SILO_RUSTFS_BUCKET:-silo-versioned-s3-demo}"
 
 for command_name in aws curl cmp mktemp; do
   if ! command -v "$command_name" >/dev/null 2>&1; then
@@ -21,7 +21,7 @@ aws_s3api() {
     aws --no-cli-pager --region "$region" --endpoint-url "$endpoint" s3api "$@"
 }
 
-temporary_directory="$(mktemp -d "${TMPDIR:-/tmp}/prolly-rustfs-aws-cli.XXXXXX")"
+temporary_directory="$(mktemp -d "${TMPDIR:-/tmp}/silo-rustfs-aws-cli.XXXXXX")"
 payload_file="$temporary_directory/payload.txt"
 download_file="$temporary_directory/download.txt"
 probe_key="manual-verification/aws-cli-$(date -u +%Y%m%dT%H%M%SZ)-$$.txt"

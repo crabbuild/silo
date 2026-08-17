@@ -1,6 +1,6 @@
 use std::{collections::BTreeMap, sync::Arc};
 
-use prolly_s3_core::{
+use silo_s3_core::{
     decode_canonical, encode_canonical, FixedClock, HistoryTransferCursor, MemoryObjectPlane,
     MergePhase, MergePolicy, ObjectHeaders, ProviderPerKeyVersionLimit, Repository,
     RepositoryOptions, SequenceIdSource,

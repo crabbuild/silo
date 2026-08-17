@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 820" role="img" aria-labelledby="title desc">
-  <title id="title">Prolly S3 cache and scale architecture</title>
+  <title id="title">SILO cache and scale architecture</title>
   <desc id="desc">A layered architecture showing bounded requests flowing through memory and disk caches, immutable Prolly indexes, authoritative S3 objects, and background maintenance.</desc>
   <defs>
     <pattern id="grid" width="32" height="32" patternUnits="userSpaceOnUse"><path d="M32 0H0V32" fill="none" stroke="#334155" stroke-opacity=".22" stroke-width="1"/></pattern>
@@ -11,7 +11,7 @@
     </style>
   </defs>
   <rect width="1200" height="820" fill="#0f172a"/><rect width="1200" height="820" fill="url(#grid)"/>
-  <text x="56" y="52" class="title">Prolly S3 — cache and unbounded-cardinality architecture</text>
+  <text x="56" y="52" class="title">SILO — cache and unbounded-cardinality architecture</text>
   <text x="56" y="78" class="subtitle">Bounded work on every path · immutable data cached by identity · S3 remains authoritative</text>
 
   <rect x="40" y="108" width="1120" height="118" rx="18" fill="#172033" stroke="#334155"/>

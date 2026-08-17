@@ -1,15 +1,15 @@
-# Prolly S3 enterprise-readiness audit
+# SILO enterprise-readiness audit
 
 Audit date: 2026-08-13
 
 Baseline: `ff6beb10` (`origin/main` at audit start)
 
-Scope: `extensions/s3/core`, `extensions/s3/client`, protocol documents,
+Scope: `core`, `client`, protocol documents,
 qualification tests, CI gates, and runnable examples
 
 ## Verdict
 
-Prolly S3 is suitable for a controlled production pilot after workload-specific
+SILO is suitable for a controlled production pilot after workload-specific
 AWS qualification. It is not yet justified to label it universally
 “enterprise production ready.” The core durability design and deterministic
 test coverage are strong, but enterprise promotion still depends on evidence
@@ -65,14 +65,14 @@ contract, update `API.md`, and add runnable scenario examples.
 ### Required RustFS tests previously self-skipped
 
 The ordinary test command compiled `rustfs_repository`, but every provider test
-returned success without doing work unless `PROLLY_S3_RUSTFS=1` was set. CI now
+returned success without doing work unless `SILO_S3_RUSTFS=1` was set. CI now
 starts the digest-pinned RustFS image, waits for health, runs the integration
 suite with the flag enabled, emits diagnostics on failure, and tears it down.
 
 ### AWS qualification instructions could run zero useful tests
 
-The guide used `PROLLY_S3_AWS_QUALIFICATION`, `PROLLY_S3_AWS_BUCKET`, and
-`PROLLY_S3_AWS_REGION`, while the harness read legacy names. The guide also
+The guide used `SILO_S3_AWS_QUALIFICATION`, `SILO_S3_AWS_BUCKET`, and
+`SILO_S3_AWS_REGION`, while the harness read legacy names. The guide also
 passed `--ignored` to a non-ignored matrix test. The harness now accepts the
 documented names (with legacy fallbacks), and the commands invoke the intended
 tests.
@@ -190,4 +190,4 @@ version-ID semantics are not available there.
       procedures are approved.
 
 Only after these deployment-specific checks pass should an operator call that
-particular Prolly S3 deployment enterprise production ready.
+particular SILO deployment enterprise production ready.

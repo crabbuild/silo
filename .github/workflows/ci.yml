@@ -1,0 +1,94 @@
+name: SILO CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+  CLIENT_TOOLCHAIN: 1.94.1
+  CORE_TOOLCHAIN: 1.89.0
+
+jobs:
+  quality:
+    name: Format, lint, test, and conformance
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.94.1
+        with:
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: silo-quality-1.94.1
+      - name: Format
+        run: cargo fmt --all -- --check
+      - name: Strict Clippy
+        run: cargo clippy --locked --workspace --all-targets --all-features -- -D warnings
+      - name: Tests
+        run: cargo test --locked --workspace --all-features
+      - name: Protocol conformance
+        run: python3 spec/prolly-s3/conformance/verify.py
+      - name: Dependency advisories
+        run: |
+          cargo install cargo-deny --version 0.20.2 --locked
+          scripts/check_dependency_security.sh
+
+  msrv:
+    name: Declared MSRV and clean downstream
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.94.1
+      - run: rustup toolchain install "$CORE_TOOLCHAIN" --profile minimal
+      - name: Core MSRV
+        run: cargo +"$CORE_TOOLCHAIN" check --locked -p silo-s3-core
+      - name: Client baseline and minimal feature set
+        run: |
+          cargo +"$CLIENT_TOOLCHAIN" check --locked --workspace --all-features
+          cargo +"$CLIENT_TOOLCHAIN" check --locked -p silo-s3-client --no-default-features
+      - name: Clean downstream consumers
+        run: scripts/check_clean_downstream.sh
+
+  rustfs:
+    name: RustFS provider qualification
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      SILO_S3_RUSTFS: "1"
+      SILO_RUSTFS_ACCESS_KEY: siloadmin
+      SILO_RUSTFS_SECRET_KEY: silo-local-secret-change-me
+      SILO_RUSTFS_RPC_SECRET: silo-local-rpc-secret-change-me
+      SILO_RUSTFS_DATA_DIR: ${{ runner.temp }}/silo-rustfs-data
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.94.1
+      - uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: silo-rustfs-1.94.1
+      - name: Prepare RustFS data directory
+        run: sudo install -d -o 10001 -g 10001 -m 0750 "$SILO_RUSTFS_DATA_DIR"
+      - name: Start pinned RustFS
+        run: |
+          docker compose -f docker-compose.rustfs.yml up -d
+          for attempt in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:9000/health >/dev/null; then exit 0; fi
+            sleep 2
+          done
+          docker compose -f docker-compose.rustfs.yml logs --no-color
+          exit 1
+      - name: RustFS integration suite
+        run: cargo test --locked -p silo-s3-client --test rustfs_repository -- --nocapture
+      - name: RustFS diagnostics
+        if: failure()
+        run: docker compose -f docker-compose.rustfs.yml logs --no-color
+      - name: Stop RustFS
+        if: always()
+        run: docker compose -f docker-compose.rustfs.yml down -v

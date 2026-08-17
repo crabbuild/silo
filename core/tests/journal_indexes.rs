@@ -1,7 +1,7 @@
 use std::{collections::BTreeMap, sync::Arc, time::Duration};
 
 use prolly::TreeFormat;
-use prolly_s3_core::{
+use silo_s3_core::{
     decode_canonical, encode_canonical, AuthorityScope, AuthorityStamp, BucketCommit, BucketDelta,
     BucketState, CommitGeneration, CommitId, CommitPublication, JournalCommitGraphEntry,
     JournalDerivedIndexes, MemoryObjectPlane, NodePack, NodePackEntry, OperationId, RepositoryId,
@@ -35,7 +35,7 @@ fn graph_index_decodes_entries_written_before_snapshot_roots_were_added() {
         generation: CommitGeneration(8),
         parents: Vec::new(),
         first_parent_jumps: Vec::new(),
-        snapshot: Some(prolly_s3_core::JournalSnapshotMetadata {
+        snapshot: Some(silo_s3_core::JournalSnapshotMetadata {
             state: BucketState {
                 objects: RootManifest {
                     root: None,
@@ -56,7 +56,7 @@ fn graph_index_decodes_entries_written_before_snapshot_roots_were_added() {
     })
     .unwrap();
     let error = decode_canonical::<LegacyJournalCommitGraphEntry>(&reencoded).unwrap_err();
-    assert_eq!(error.code, prolly_s3_core::ErrorCode::CorruptCommit);
+    assert_eq!(error.code, silo_s3_core::ErrorCode::CorruptCommit);
 }
 
 fn operation(value: u128) -> OperationId {
@@ -96,7 +96,7 @@ fn commit(
 }
 
 fn pack(payload: &[u8]) -> NodePack {
-    let cid = prolly_s3_core::Cid::from_bytes(payload);
+    let cid = silo_s3_core::Cid::from_bytes(payload);
     NodePack {
         format_digest: TreeFormatDigest::from_hash([0x51; 32]),
         entries: vec![NodePackEntry {
@@ -307,6 +307,6 @@ async fn late_initialization_fails_closed_instead_of_scanning_commit_namespaces(
         .advance(&publisher, "main", 1_002)
         .await
         .unwrap_err();
-    assert_eq!(error.code, prolly_s3_core::ErrorCode::PreconditionFailed);
+    assert_eq!(error.code, silo_s3_core::ErrorCode::PreconditionFailed);
     assert_eq!(plane.request_snapshot().list, 0);
 }

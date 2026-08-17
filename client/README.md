@@ -1,4 +1,4 @@
-# Prolly S3 client
+# SILO client
 
 The client turns a versioned S3 bucket into a branchable file repository.
 Files remain ordinary whole S3 objects under immutable derived keys; Prolly
@@ -19,7 +19,7 @@ This complete program shape works with AWS SDK configuration you supply:
 
 ```rust
 use std::{sync::Arc, time::Duration};
-use prolly_s3_client::{
+use silo_s3_client::{
     core::ProviderPerKeyVersionLimit,
     Client, HmacAttestationSigner, ProviderIdentity,
 };
@@ -27,7 +27,7 @@ use prolly_s3_client::{
 async fn create(
     aws: aws_sdk_s3::Client,
     bucket: &str,
-) -> Result<Client, prolly_s3_client::Error> {
+) -> Result<Client, silo_s3_client::Error> {
     Client::builder()
         .aws_client(aws)
         .bucket(bucket)
@@ -57,15 +57,15 @@ The example suite uses an isolated repository prefix for every run. Start the
 pinned local RustFS service, then run every scenario:
 
 ```bash
-docker compose -f extensions/s3/docker-compose.rustfs.yml up -d
-extensions/s3/scripts/run_rustfs_examples.sh
+docker compose -f docker-compose.rustfs.yml up -d
+scripts/run_rustfs_examples.sh
 ```
 
 Run one scenario with Cargo:
 
 ```bash
-cargo run --locked --manifest-path extensions/s3/Cargo.toml \
-  -p prolly-s3-client --example branch_diff_merge
+cargo run --locked --manifest-path Cargo.toml \
+  -p silo-s3-client --example branch_diff_merge
 ```
 
 Run the staged tiny-file performance benchmark (10K through 1M files by
@@ -73,14 +73,14 @@ default). The repository grows cumulatively and reports write, publication,
 full-list, and sampled-read latency and throughput after every stage:
 
 ```bash
-cargo run --release --locked --manifest-path extensions/s3/Cargo.toml \
-  -p prolly-s3-client --example rustfs_small_files_benchmark
+cargo run --release --locked --manifest-path Cargo.toml \
+  -p silo-s3-client --example rustfs_small_files_benchmark
 ```
 
-Use `PROLLY_RUSTFS_PERF_STAGES=10000,20000` for a shorter run. RustFS defaults
-to the `prolly` bucket and the repository's standard local credentials
-(`prollyadmin` / `prolly-local-secret-change-me`); all values remain overridable
-with the `PROLLY_RUSTFS_*` environment variables.
+Use `SILO_RUSTFS_PERF_STAGES=10000,20000` for a shorter run. RustFS defaults
+to the `silo` bucket and the repository's standard local credentials
+(`siloadmin` / `silo-local-secret-change-me`); all values remain overridable
+with the `SILO_RUSTFS_*` environment variables.
 
 | Example | Demonstrates |
 |---|---|
@@ -128,7 +128,7 @@ Identical complete bodies reuse the same content-addressed object.
 For safe retries, generate and persist one operation ID:
 
 ```rust
-let operation = prolly_s3_client::core::OperationId::new();
+let operation = silo_s3_client::core::OperationId::new();
 let receipt = client
     .put_object_with_operation("documents/readme.txt", bytes, operation)
     .await?;
@@ -175,7 +175,7 @@ For a collection already in memory, `put_objects` creates durable batches
 for you. Payload uploads use bounded concurrency by default:
 
 ```rust
-use prolly_s3_client::PutObjectInput;
+use silo_s3_client::PutObjectInput;
 
 let receipts = client
     .put_objects(
@@ -194,11 +194,11 @@ For an unbounded or fallible source, pass a `Stream` so memory stays bounded
 by one checkpoint window:
 
 ```rust
-use prolly_s3_client::{BulkWriteOptions, PutObjectInput};
+use silo_s3_client::{BulkWriteOptions, PutObjectInput};
 
 let receipts = client
     .put_object_stream(
-        incoming_objects, // Stream<Item = prolly_s3_client::Result<PutObjectInput>>
+        incoming_objects, // Stream<Item = silo_s3_client::Result<PutObjectInput>>
         BulkWriteOptions {
             batch_size: 10_000,
             concurrency: 32,
@@ -275,7 +275,7 @@ writes index state.
 ## Branch and merge
 
 ```rust
-use prolly_s3_client::core::{MergePhase, MergePolicy};
+use silo_s3_client::core::{MergePhase, MergePolicy};
 
 let base = client.head().await?;
 client.create_branch("feature", Some(base)).await?;
@@ -309,7 +309,7 @@ branch before a tag. Fully qualified names remove ambiguity, and a `CommitId`
 creates a detached checkout:
 
 ```rust
-use prolly_s3_client::{CheckedOutRef, CheckoutRef};
+use silo_s3_client::{CheckedOutRef, CheckoutRef};
 
 let commit_id = client.head().await?;
 client.create_tag("v1.0", commit_id).await?;
@@ -339,7 +339,7 @@ snapshot, while mutation and branch-ref APIs return `InvalidRevision`.
 History and diff cursors keep traversal state bounded:
 
 ```rust
-use prolly_s3_client::core::TraversalBudget;
+use silo_s3_client::core::TraversalBudget;
 
 let head = client.head().await?;
 let log = client
@@ -378,12 +378,12 @@ payload metadata. Deep mode also downloads and hashes payload bytes:
 ```rust
 let mut fsck = client.start_fsck(true).await?;
 let fsck_job = fsck.job;
-while fsck.phase != prolly_s3_client::core::FsckPhase::Complete {
+while fsck.phase != silo_s3_client::core::FsckPhase::Complete {
     fsck = client.advance_fsck(&fsck, 1_000).await?.cursor;
 }
 println!("verified {} commits", fsck.report.commits);
 let mut cleanup = client.start_fsck_cleanup(fsck_job).await?;
-while cleanup.phase != prolly_s3_client::core::FsckCleanupPhase::Complete {
+while cleanup.phase != silo_s3_client::core::FsckCleanupPhase::Complete {
     cleanup = client.advance_fsck_cleanup(&cleanup, 1_000).await?.cursor;
 }
 ```
@@ -476,7 +476,7 @@ The grace period must be longer than the maximum time an upload, resumable
 commit, merge, repair, or history transfer may remain unpublished:
 
 ```rust
-use prolly_s3_client::core::GcPhase;
+use silo_s3_client::core::GcPhase;
 
 let two_hours_millis = 2 * 60 * 60 * 1_000;
 let mut gc = client.start_gc(two_hours_millis).await?;
@@ -525,7 +525,7 @@ use the cardinality-aware profile so persistent storage, metadata-node bounds,
 startup prewarming, and upper-level pinning are configured together:
 
 ```rust
-use prolly_s3_client::{Client, ProductionCacheProfile};
+use silo_s3_client::{Client, ProductionCacheProfile};
 
 let profile = ProductionCacheProfile::new(
     "./prolly-node-cache",
@@ -561,7 +561,7 @@ For custom deployments, construct the cache directly:
 
 ```rust
 use std::path::PathBuf;
-use prolly_s3_client::{FoyerNodeCache, FoyerNodeCacheConfig};
+use silo_s3_client::{FoyerNodeCache, FoyerNodeCacheConfig};
 
 let cache = FoyerNodeCache::open(FoyerNodeCacheConfig {
     directory: PathBuf::from("./prolly-node-cache"),
@@ -611,9 +611,9 @@ continues to own the SDK, exporter, resource attributes, and shutdown:
 ```rust
 use std::{sync::Arc, time::Duration};
 use opentelemetry::global;
-use prolly_s3_client::{Client, OpenTelemetryClientMetrics};
+use silo_s3_client::{Client, OpenTelemetryClientMetrics};
 
-let telemetry = OpenTelemetryClientMetrics::new(global::meter("prolly-s3"));
+let telemetry = OpenTelemetryClientMetrics::new(global::meter("silo"));
 let client = Client::builder()
     // supply the remaining required settings
     .telemetry(telemetry, Duration::from_secs(15))

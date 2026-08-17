@@ -15,7 +15,7 @@ use aws_sdk_s3::{
     types::{BucketVersioningStatus, VersioningConfiguration},
 };
 use futures_util::{stream, StreamExt};
-use prolly_s3_client::{
+use silo_s3_client::{
     core::{
         BoundaryRule, GcPhase, MergePhase, MergePolicy, NodeCacheSnapshot, ObjectHeaders,
         ProviderPerKeyVersionLimit, TreeFormat,
@@ -24,7 +24,7 @@ use prolly_s3_client::{
     S3OperationMetrics, S3WireAttemptInterceptor, S3WireAttemptMetrics,
 };
 #[cfg(feature = "foyer-cache")]
-use prolly_s3_client::{FoyerNodeCache, FoyerNodeCacheConfig};
+use silo_s3_client::{FoyerNodeCache, FoyerNodeCacheConfig};
 use std::collections::BTreeMap;
 #[cfg(feature = "foyer-cache")]
 use std::path::PathBuf;
@@ -50,7 +50,7 @@ fn env(name: &str, default: &str) -> String {
 }
 
 fn parse_stages() -> BenchResult<Vec<usize>> {
-    let raw = std::env::var("PROLLY_RUSTFS_PERF_STAGES").ok();
+    let raw = std::env::var("SILO_RUSTFS_PERF_STAGES").ok();
     let mut stages = match raw {
         Some(raw) => raw
             .split(',')
@@ -132,13 +132,11 @@ fn print_provider_metrics(label: &str, metrics: S3OperationMetrics) {
     let write_requests = metrics.put_object;
     let list_requests = metrics.list_objects_v2 + metrics.list_object_versions;
     let delete_requests = metrics.delete_object + metrics.delete_objects;
-    let estimated_cost = request_price("PROLLY_RUSTFS_PERF_READ_USD_PER_1000")
-        * read_requests as f64
+    let estimated_cost = request_price("SILO_RUSTFS_PERF_READ_USD_PER_1000") * read_requests as f64
         / 1_000.0
-        + request_price("PROLLY_RUSTFS_PERF_WRITE_USD_PER_1000") * write_requests as f64 / 1_000.0
-        + request_price("PROLLY_RUSTFS_PERF_LIST_USD_PER_1000") * list_requests as f64 / 1_000.0
-        + request_price("PROLLY_RUSTFS_PERF_DELETE_USD_PER_1000") * delete_requests as f64
-            / 1_000.0;
+        + request_price("SILO_RUSTFS_PERF_WRITE_USD_PER_1000") * write_requests as f64 / 1_000.0
+        + request_price("SILO_RUSTFS_PERF_LIST_USD_PER_1000") * list_requests as f64 / 1_000.0
+        + request_price("SILO_RUSTFS_PERF_DELETE_USD_PER_1000") * delete_requests as f64 / 1_000.0;
     println!(
         "METRICS phase={label} s3_calls={} get={} head={} put={} list={} list_versions={} delete={} delete_batch={} uploaded_bytes={} downloaded_bytes={} estimated_request_cost_usd={estimated_cost:.8}",
         metrics.total_calls(),
@@ -224,43 +222,43 @@ async fn ensure_versioned_bucket(aws: &aws_sdk_s3::Client, bucket: &str) -> Benc
 
 #[tokio::main(flavor = "multi_thread", worker_threads = 12)]
 async fn main() -> BenchResult {
-    let endpoint = env("PROLLY_RUSTFS_ENDPOINT", "http://127.0.0.1:9000");
-    let access_key = env("PROLLY_RUSTFS_ACCESS_KEY", "prollyadmin");
-    let secret_key = env("PROLLY_RUSTFS_SECRET_KEY", "prolly-local-secret-change-me");
-    let bucket = env("PROLLY_RUSTFS_BUCKET", "prolly");
-    let read_sample_size = env("PROLLY_RUSTFS_PERF_READ_SAMPLES", "1000").parse::<usize>()?;
-    let read_concurrency = env("PROLLY_RUSTFS_PERF_READ_CONCURRENCY", "32").parse::<usize>()?;
-    let write_concurrency = env("PROLLY_RUSTFS_PERF_WRITE_CONCURRENCY", "32").parse::<usize>()?;
-    let existing_files = env("PROLLY_RUSTFS_PERF_EXISTING_FILES", "0").parse::<usize>()?;
-    let branch_changes = parse_positive_sizes("PROLLY_RUSTFS_PERF_BRANCH_CHANGES", "100")?;
-    let list_prefixes = parse_prefixes("PROLLY_RUSTFS_PERF_LIST_PREFIXES");
-    let open_mode = env("PROLLY_RUSTFS_PERF_OPEN_MODE", "initialize");
+    let endpoint = env("SILO_RUSTFS_ENDPOINT", "http://127.0.0.1:9000");
+    let access_key = env("SILO_RUSTFS_ACCESS_KEY", "siloadmin");
+    let secret_key = env("SILO_RUSTFS_SECRET_KEY", "silo-local-secret-change-me");
+    let bucket = env("SILO_RUSTFS_BUCKET", "silo");
+    let read_sample_size = env("SILO_RUSTFS_PERF_READ_SAMPLES", "1000").parse::<usize>()?;
+    let read_concurrency = env("SILO_RUSTFS_PERF_READ_CONCURRENCY", "32").parse::<usize>()?;
+    let write_concurrency = env("SILO_RUSTFS_PERF_WRITE_CONCURRENCY", "32").parse::<usize>()?;
+    let existing_files = env("SILO_RUSTFS_PERF_EXISTING_FILES", "0").parse::<usize>()?;
+    let branch_changes = parse_positive_sizes("SILO_RUSTFS_PERF_BRANCH_CHANGES", "100")?;
+    let list_prefixes = parse_prefixes("SILO_RUSTFS_PERF_LIST_PREFIXES");
+    let open_mode = env("SILO_RUSTFS_PERF_OPEN_MODE", "initialize");
     if !matches!(open_mode.as_str(), "initialize" | "open") {
         return Err("open mode must be initialize or open".into());
     }
-    let list_passes = env("PROLLY_RUSTFS_PERF_LIST_PASSES", "1").parse::<usize>()?;
-    let read_passes = env("PROLLY_RUSTFS_PERF_READ_PASSES", "1").parse::<usize>()?;
-    let run_branches = env("PROLLY_RUSTFS_PERF_BRANCH", "true").parse::<bool>()?;
-    let node_cache_mib = env("PROLLY_RUSTFS_PERF_NODE_CACHE_MIB", "64").parse::<usize>()?;
-    let prewarm_levels = env("PROLLY_RUSTFS_PERF_PREWARM_LEVELS", "0").parse::<usize>()?;
-    let tree_target_entries = std::env::var("PROLLY_RUSTFS_PERF_TREE_TARGET_ENTRIES")
+    let list_passes = env("SILO_RUSTFS_PERF_LIST_PASSES", "1").parse::<usize>()?;
+    let read_passes = env("SILO_RUSTFS_PERF_READ_PASSES", "1").parse::<usize>()?;
+    let run_branches = env("SILO_RUSTFS_PERF_BRANCH", "true").parse::<bool>()?;
+    let node_cache_mib = env("SILO_RUSTFS_PERF_NODE_CACHE_MIB", "64").parse::<usize>()?;
+    let prewarm_levels = env("SILO_RUSTFS_PERF_PREWARM_LEVELS", "0").parse::<usize>()?;
+    let tree_target_entries = std::env::var("SILO_RUSTFS_PERF_TREE_TARGET_ENTRIES")
         .ok()
         .map(|value| value.parse::<u32>())
         .transpose()?;
-    let rebuild_index = env("PROLLY_RUSTFS_PERF_REBUILD_INDEX", "false").parse::<bool>()?;
-    let run_gc = env("PROLLY_RUSTFS_PERF_GC", "false").parse::<bool>()?;
+    let rebuild_index = env("SILO_RUSTFS_PERF_REBUILD_INDEX", "false").parse::<bool>()?;
+    let run_gc = env("SILO_RUSTFS_PERF_GC", "false").parse::<bool>()?;
     let abandon_incomplete_gc =
-        env("PROLLY_RUSTFS_PERF_GC_ABANDON_INCOMPLETE", "false").parse::<bool>()?;
-    let gc_grace_millis = env("PROLLY_RUSTFS_PERF_GC_GRACE_MILLIS", "1").parse::<u64>()?;
-    let run_foreground = env("PROLLY_RUSTFS_PERF_FOREGROUND", "true").parse::<bool>()?;
-    let fsck_mode = env("PROLLY_RUSTFS_PERF_FSCK", "none");
+        env("SILO_RUSTFS_PERF_GC_ABANDON_INCOMPLETE", "false").parse::<bool>()?;
+    let gc_grace_millis = env("SILO_RUSTFS_PERF_GC_GRACE_MILLIS", "1").parse::<u64>()?;
+    let run_foreground = env("SILO_RUSTFS_PERF_FOREGROUND", "true").parse::<bool>()?;
+    let fsck_mode = env("SILO_RUSTFS_PERF_FSCK", "none");
     if !matches!(fsck_mode.as_str(), "none" | "shallow" | "deep") {
         return Err("fsck mode must be none, shallow, or deep".into());
     }
     #[cfg(feature = "foyer-cache")]
-    let foyer_directory = std::env::var_os("PROLLY_RUSTFS_PERF_FOYER_DIR").map(PathBuf::from);
+    let foyer_directory = std::env::var_os("SILO_RUSTFS_PERF_FOYER_DIR").map(PathBuf::from);
     #[cfg(not(feature = "foyer-cache"))]
-    if std::env::var_os("PROLLY_RUSTFS_PERF_FOYER_DIR").is_some() {
+    if std::env::var_os("SILO_RUSTFS_PERF_FOYER_DIR").is_some() {
         return Err("Foyer cache requested but the foyer-cache feature is disabled".into());
     }
     let stages = parse_stages()?;
@@ -300,14 +298,14 @@ async fn main() -> BenchResult {
 
     let run_id = SystemTime::now().duration_since(UNIX_EPOCH)?.as_nanos();
     let prefix = env(
-        "PROLLY_RUSTFS_PERF_PREFIX",
+        "SILO_RUSTFS_PERF_PREFIX",
         &format!("benchmarks/small-files/{run_id}"),
     );
     let writer = env(
-        "PROLLY_RUSTFS_PERF_WRITER",
+        "SILO_RUSTFS_PERF_WRITER",
         &format!("small-files-benchmark-{run_id}"),
     );
-    let branch_suffix = env("PROLLY_RUSTFS_PERF_BRANCH_SUFFIX", &run_id.to_string());
+    let branch_suffix = env("SILO_RUSTFS_PERF_BRANCH_SUFFIX", &run_id.to_string());
     #[cfg(feature = "foyer-cache")]
     let foyer_cache = match foyer_directory.as_ref() {
         Some(directory) => Some(
@@ -360,7 +358,7 @@ async fn main() -> BenchResult {
         "CONFIG endpoint={endpoint} bucket={bucket} prefix={prefix} writer={writer} open_mode={open_mode} stages={stages:?} existing_files={existing_files} branch_changes={branch_changes:?} list_prefixes={list_prefixes:?} list_passes={list_passes} read_passes={read_passes} branch={run_branches} node_cache_mib={node_cache_mib} prewarm_levels={prewarm_levels} tree_target_entries={} foyer={} rebuild_index={rebuild_index} foreground={run_foreground} fsck={fsck_mode} gc={run_gc} gc_grace_millis={gc_grace_millis} object_bytes={} mutations_per_commit={MUTATIONS_PER_COMMIT} write_concurrency={write_concurrency} read_samples={read_sample_size} read_concurrency={read_concurrency}",
         tree_target_entries.map_or_else(|| "default".to_string(), |target| target.to_string()),
         if cfg!(feature = "foyer-cache")
-            && std::env::var_os("PROLLY_RUSTFS_PERF_FOYER_DIR").is_some()
+            && std::env::var_os("SILO_RUSTFS_PERF_FOYER_DIR").is_some()
         {
             "enabled"
         } else {
@@ -773,8 +771,8 @@ async fn main() -> BenchResult {
         if abandon_incomplete_gc {
             match client.abandon_incomplete_gc().await {
                 Ok(epoch) => println!("GC_ABANDONED_INCOMPLETE epoch={epoch}"),
-                Err(error)
-                    if error.code == prolly_s3_client::core::ErrorCode::PreconditionFailed => {}
+                Err(error) if error.code == silo_s3_client::core::ErrorCode::PreconditionFailed => {
+                }
                 Err(error) => return Err(error.into()),
             }
         }

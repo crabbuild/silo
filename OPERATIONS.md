@@ -1,4 +1,4 @@
-# Prolly S3 operations
+# SILO operations
 
 The stable upgrade/recovery contract, exported OpenTelemetry instruments, and
 reference production alerts are defined in [GA-CONTRACT.md](GA-CONTRACT.md).

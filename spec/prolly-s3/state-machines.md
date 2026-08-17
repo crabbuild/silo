@@ -1,4 +1,4 @@
-# Prolly S3 state machines
+# SILO state machines
 
 ## Repository initialization
 

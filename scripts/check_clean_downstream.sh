@@ -2,11 +2,11 @@
 set -euo pipefail
 
 qualification_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../qualification" && pwd)"
-if [[ -n "${PROLLY_S3_CARGO_TARGET_DIR:-}" ]]; then
-  target_root="$PROLLY_S3_CARGO_TARGET_DIR/clean-downstream"
+if [[ -n "${SILO_S3_CARGO_TARGET_DIR:-}" ]]; then
+  target_root="$SILO_S3_CARGO_TARGET_DIR/clean-downstream"
   mkdir -p "$target_root/core-1.89" "$target_root/client-1.94.1"
 else
-  target_root="$(mktemp -d "${TMPDIR:-/tmp}/prolly-s3-downstream.XXXXXX")"
+  target_root="$(mktemp -d "${TMPDIR:-/tmp}/silo-downstream.XXXXXX")"
   trap 'rm -rf -- "$target_root"' EXIT
 fi
 

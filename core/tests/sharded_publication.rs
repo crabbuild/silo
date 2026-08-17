@@ -1,6 +1,6 @@
 use std::{collections::BTreeMap, sync::Arc, time::Duration};
 
-use prolly_s3_core::{
+use silo_s3_core::{
     AuthorityScope, AuthorityStamp, BucketCommit, BucketDelta, BucketState, CommitGeneration,
     CommitId, CommitObject, CommitPublication, ErrorCode, GetRequest, ListRequest,
     MemoryObjectPlane, NodePack, NodePackEntry, ObjectPath, ObjectPlane, OperationId,
@@ -374,7 +374,7 @@ async fn publication_stores_real_prolly_nodes_in_the_commit_envelope() {
         .await
         .unwrap();
     let node = b"prolly-root-node".to_vec();
-    let cid = prolly_s3_core::Cid::from_bytes(&node);
+    let cid = silo_s3_core::Cid::from_bytes(&node);
     let pack = NodePack {
         format_digest: TreeFormatDigest::from_hash([0x66; 32]),
         entries: vec![NodePackEntry {
@@ -572,8 +572,8 @@ async fn publication_journal_pages_a_stable_branch_snapshot_without_listing() {
 
     let snapshot = publisher.open_journal("main").await.unwrap();
     assert_eq!(snapshot.next_generation, Some(RefGeneration(2)));
-    let snapshot_bytes = prolly_s3_core::encode_canonical(&snapshot).unwrap();
-    let snapshot = prolly_s3_core::decode_canonical(&snapshot_bytes).unwrap();
+    let snapshot_bytes = silo_s3_core::encode_canonical(&snapshot).unwrap();
+    let snapshot = silo_s3_core::decode_canonical(&snapshot_bytes).unwrap();
 
     let mut next = commit(
         permit.stamp(),

@@ -1,6 +1,6 @@
 use std::{collections::BTreeMap, sync::Arc};
 
-use prolly_s3_core::{
+use silo_s3_core::{
     Checksums, CommitGeneration, ErrorCode, ImmutablePayloadStore, ListRequest,
     LogicalObjectVersionBody, LogicalObjectVersionKind, MemoryObjectPlane, ObjectHeaders,
     ObjectPlane, ObjectVersion, ObjectVersionOrder, OperationId, ProviderPerKeyVersionLimit,

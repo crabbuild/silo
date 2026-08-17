@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1120 650" role="img" aria-labelledby="title desc">
-  <title id="title">Prolly S3 architecture</title>
-  <desc id="desc">An application uses the Prolly S3 client. Each logical payload is stored as one complete immutable provider object, while Prolly metadata maps logical keys to exact object identities and publishes commits through a branch reference.</desc>
+  <title id="title">SILO architecture</title>
+  <desc id="desc">An application uses the SILO client. Each logical payload is stored as one complete immutable provider object, while Prolly metadata maps logical keys to exact object identities and publishes commits through a branch reference.</desc>
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#08111f"/><stop offset="1" stop-color="#111b34"/></linearGradient>
     <marker id="arrow" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto"><path d="M0 0 9 3.5 0 7Z" fill="#6ee7f9"/></marker>
@@ -15,7 +15,7 @@
   <text x="155" y="255" text-anchor="middle" class="b">put · get · list · external handoff</text>
   <text x="155" y="280" text-anchor="middle" class="b">branch · diff · merge · restore</text>
   <rect x="350" y="125" width="300" height="220" rx="14" class="box"/>
-  <text x="500" y="168" text-anchor="middle" class="t">Prolly S3 client</text>
+  <text x="500" y="168" text-anchor="middle" class="t">SILO client</text>
   <text x="500" y="201" text-anchor="middle" class="b">exclusive writer queue + fence</text>
   <text x="500" y="228" text-anchor="middle" class="b">logical conditions + idempotency</text>
   <rect x="390" y="260" width="220" height="58" rx="10" class="meta"/>

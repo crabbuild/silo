@@ -1,10 +1,10 @@
-use prolly_s3_core::{
+use sha2::{Digest as _, Sha256};
+use silo_s3_core::{
     encode_canonical, AuthorityLease, AuthorityLeaseState, AuthorityScope, AuthorityStamp,
     BucketCommit, BucketDelta, BucketState, CommitGeneration, CommitId, CommitObject, ErrorCode,
     NodePack, NodePackEntry, OperationId, PublicationEvent, RefGeneration, RefValue, ReflogEntry,
     RepositoryId, RootManifest, TreeFormatDigest,
 };
-use sha2::{Digest as _, Sha256};
 
 fn lease() -> AuthorityLease {
     AuthorityLease {
@@ -134,7 +134,7 @@ fn publication_records_have_frozen_content_identities() {
 #[test]
 fn commit_envelope_is_range_readable_and_rejects_invalid_magic() {
     let node = b"authority-stamped-node".to_vec();
-    let cid = prolly_s3_core::Cid::from_bytes(&node);
+    let cid = silo_s3_core::Cid::from_bytes(&node);
     let pack = NodePack {
         format_digest: TreeFormatDigest::from_hash([0x44; 32]),
         entries: vec![NodePackEntry {

@@ -18,7 +18,7 @@ use crate::{Error, ErrorCode, Result};
 
 const MAX_CBOR_DEPTH: usize = 128;
 
-/// Encode the frozen Prolly S3 wire profile with Minicbor.
+/// Encode the frozen SILO wire profile with Minicbor.
 ///
 /// Struct fields and unit/struct enum variants use their stable numeric Serde
 /// indices, matching the former `serde_cbor` packed representation. Maps are
@@ -136,10 +136,10 @@ impl ser::Serializer for WireSerializer {
 
     fn serialize_i128(self, value: i128) -> WireResult<Self::Ok> {
         if value < 0 {
-            return Err(WireError("Prolly S3 forbids negative CBOR integers".into()));
+            return Err(WireError("SILO forbids negative CBOR integers".into()));
         }
         let value = u64::try_from(value)
-            .map_err(|_| WireError("CBOR integer exceeds the Prolly S3 wire profile".into()))?;
+            .map_err(|_| WireError("CBOR integer exceeds the SILO wire profile".into()))?;
         Self::unsigned(value)
     }
 
@@ -161,20 +161,16 @@ impl ser::Serializer for WireSerializer {
 
     fn serialize_u128(self, value: u128) -> WireResult<Self::Ok> {
         let value = u64::try_from(value)
-            .map_err(|_| WireError("CBOR integer exceeds the Prolly S3 wire profile".into()))?;
+            .map_err(|_| WireError("CBOR integer exceeds the SILO wire profile".into()))?;
         Self::unsigned(value)
     }
 
     fn serialize_f32(self, _value: f32) -> WireResult<Self::Ok> {
-        Err(WireError(
-            "Prolly S3 forbids CBOR floating-point values".into(),
-        ))
+        Err(WireError("SILO forbids CBOR floating-point values".into()))
     }
 
     fn serialize_f64(self, _value: f64) -> WireResult<Self::Ok> {
-        Err(WireError(
-            "Prolly S3 forbids CBOR floating-point values".into(),
-        ))
+        Err(WireError("SILO forbids CBOR floating-point values".into()))
     }
 
     fn serialize_char(self, value: char) -> WireResult<Self::Ok> {
@@ -575,7 +571,7 @@ fn decode_wire_item(
 ) -> std::result::Result<WireValue, minicbor::decode::Error> {
     if depth >= MAX_CBOR_DEPTH {
         return Err(minicbor::decode::Error::message(
-            "CBOR nesting exceeds the Prolly S3 limit",
+            "CBOR nesting exceeds the SILO limit",
         ));
     }
     match decoder.datatype()? {
@@ -627,16 +623,16 @@ fn decode_wire_item(
             Ok(WireValue::Map(values))
         }
         Type::F16 | Type::F32 | Type::F64 => Err(minicbor::decode::Error::message(
-            "Prolly S3 forbids CBOR floating-point values",
+            "SILO forbids CBOR floating-point values",
         )),
         Type::Tag => Err(minicbor::decode::Error::message(
-            "Prolly S3 forbids CBOR semantic tags",
+            "SILO forbids CBOR semantic tags",
         )),
         Type::ArrayIndef | Type::MapIndef | Type::BytesIndef | Type::StringIndef => Err(
-            minicbor::decode::Error::message("Prolly S3 requires definite-length CBOR values"),
+            minicbor::decode::Error::message("SILO requires definite-length CBOR values"),
         ),
         other => Err(minicbor::decode::Error::message(format!(
-            "unsupported Prolly S3 CBOR value {other}"
+            "unsupported SILO CBOR value {other}"
         ))),
     }
 }

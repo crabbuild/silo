@@ -1,11 +1,11 @@
-# Prolly S3 general-availability contract
+# SILO general-availability contract
 
 Status: proposed contract for the first stable release. The `0.1.x` crates are
 still a preview and do not yet carry the GA compatibility promise below.
 
 ## Storage boundary
 
-One logical live file is one complete immutable provider object. Prolly S3
+One logical live file is one complete immutable provider object. SILO
 does not pack payloads, split payloads into chunks, or own multipart-upload
 state. Prolly metadata nodes may share a range-addressable commit object;
 logical payloads never do.
@@ -85,7 +85,7 @@ fail until prewarming completes.
 
 ## OpenTelemetry and reference alerts
 
-Build `prolly-s3-client` with `opentelemetry` and attach an
+Build `silo-s3-client` with `opentelemetry` and attach an
 `OpenTelemetryClientMetrics` sink through `ClientBuilder::telemetry`. The
 application owns the `MeterProvider`, exporter, resource attributes, sampling,
 and shutdown. The client exports bounded-dimension metrics for:

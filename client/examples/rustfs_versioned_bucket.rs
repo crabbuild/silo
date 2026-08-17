@@ -3,18 +3,18 @@ use std::{sync::Arc, time::Duration};
 use aws_config::BehaviorVersion;
 use aws_credential_types::Credentials;
 use aws_types::region::Region;
-use prolly_s3_client::{
+use silo_s3_client::{
     core::{MergePhase, MergePolicy, ProviderPerKeyVersionLimit},
     Client, HmacAttestationSigner, ProviderIdentity,
 };
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let endpoint = environment("PROLLY_RUSTFS_ENDPOINT", "http://127.0.0.1:9000");
-    let access_key = environment("PROLLY_RUSTFS_ACCESS_KEY", "prollyadmin");
-    let secret_key = environment("PROLLY_RUSTFS_SECRET_KEY", "prolly-local-secret-change-me");
-    let bucket = environment("PROLLY_RUSTFS_BUCKET", "prolly-versioned-s3-demo");
-    let repository_prefix = environment("PROLLY_S3_DEMO_PREFIX", ".prolly-demo");
+    let endpoint = environment("SILO_RUSTFS_ENDPOINT", "http://127.0.0.1:9000");
+    let access_key = environment("SILO_RUSTFS_ACCESS_KEY", "siloadmin");
+    let secret_key = environment("SILO_RUSTFS_SECRET_KEY", "silo-local-secret-change-me");
+    let bucket = environment("SILO_RUSTFS_BUCKET", "silo-versioned-s3-demo");
+    let repository_prefix = environment("SILO_S3_DEMO_PREFIX", ".silo-demo");
 
     let aws_config = aws_sdk_s3::Config::builder()
         .behavior_version(BehaviorVersion::latest())

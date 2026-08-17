@@ -1,4 +1,4 @@
-# Prolly S3 measured performance envelope
+# SILO measured performance envelope
 
 Date: 2026-08-13
 

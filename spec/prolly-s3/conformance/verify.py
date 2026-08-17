@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Dependency-free structural verifier for the sole Prolly S3 format."""
+"""Dependency-free structural verifier for the sole SILO format."""
 
 from pathlib import Path
 import sys

@@ -6,19 +6,19 @@ use std::{
 use aws_sdk_s3::types::BucketVersioningStatus;
 use aws_smithy_types::error::metadata::ProvideErrorMetadata;
 use hmac::{Hmac, Mac};
-use prolly_s3_core::{
+use serde::Serialize;
+use sha2::{Digest, Sha256};
+use silo_s3_core::{
     decode_canonical, encode_canonical, BucketClass, CompareExchange, CompareExchangeOutcome,
     Error, ErrorCode, GetRequest, ImmutablePut, ListRequest, ObjectPath, ObjectPlane,
     PhysicalVersion, PhysicalVersioning, ProviderAttestation, ProviderAttestationBody,
     ProviderCapabilities, ProviderProfileId, Result,
 };
-use serde::Serialize;
-use sha2::{Digest, Sha256};
 
 use crate::AwsS3ObjectPlane;
 
 const PROBE_SUITE_VERSION: u32 = 1;
-const SDK_VERSION: &str = "aws-sdk-s3/1.140.0;prolly-s3-client/0.1.0";
+const SDK_VERSION: &str = "aws-sdk-s3/1.140.0;silo-s3-client/0.1.0";
 const MAX_CLOCK_SKEW_MILLIS: u64 = 5 * 60 * 1_000;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -371,7 +371,7 @@ async fn probe_provider(
 
     let probe = format!(
         "{repository_prefix}/probes/{}/",
-        prolly_s3_core::OperationId::new()
+        silo_s3_core::OperationId::new()
     );
     let mutable = ObjectPath::new(format!("{probe}mutable"))?;
     let listed = ObjectPath::new(format!("{probe}listed"))?;
@@ -598,7 +598,7 @@ async fn replication_status(
 async fn delete_metadata_exact(
     plane: &AwsS3ObjectPlane,
     path: &ObjectPath,
-    metadata: &prolly_s3_core::StoredMetadata,
+    metadata: &silo_s3_core::StoredMetadata,
 ) -> Result<()> {
     let version = match metadata.token.version_id.as_ref() {
         Some(version_id) if version_id != "null" => PhysicalVersion::Versioned {

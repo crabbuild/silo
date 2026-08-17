@@ -8,7 +8,7 @@ use foyer::{
     BlockEngineConfig, DeviceBuilder, FsDeviceBuilder, HybridCache, HybridCachePolicy,
     PsyncIoEngineConfig, S3FifoConfig,
 };
-use prolly_s3_core::{NodeCache, NodeCacheError, NodeCacheKey};
+use silo_s3_core::{NodeCache, NodeCacheError, NodeCacheKey};
 
 use crate::{Error, ErrorCode, Result};
 
@@ -110,7 +110,7 @@ impl FoyerNodeCache {
             .with_flushers(1)
             .with_reclaimers(1);
         let cache = HybridCache::builder()
-            .with_name("prolly-s3-node-cache")
+            .with_name("silo-node-cache")
             .with_policy(HybridCachePolicy::WriteOnInsertion)
             .with_flush_on_close(true)
             .memory(config.memory_capacity_bytes)
@@ -272,7 +272,7 @@ impl NodeCache for FoyerNodeCache {
 mod tests {
     use std::collections::BTreeMap;
 
-    use prolly_s3_core::{
+    use silo_s3_core::{
         Cid, MemoryObjectPlane, ObjectHeaders, ProviderPerKeyVersionLimit, Repository,
         RepositoryId, RepositoryOptions, TreeFormatDigest,
     };

@@ -2,7 +2,7 @@ use aws_config::BehaviorVersion;
 use aws_credential_types::Credentials;
 use aws_sdk_s3::config::Region;
 use aws_smithy_types::retry::RetryConfig;
-use prolly_s3_client::S3WireAttemptInterceptor;
+use silo_s3_client::S3WireAttemptInterceptor;
 use tokio::{
     io::{AsyncReadExt, AsyncWriteExt},
     net::TcpListener,

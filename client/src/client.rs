@@ -9,7 +9,8 @@ use std::{
 use aws_sdk_s3::primitives::ByteStream;
 use futures_util::{stream, Stream, StreamExt};
 use md5::Md5;
-use prolly_s3_core::{
+use sha2::{Digest as _, Sha256};
+use silo_s3_core::{
     BackupVerificationCursor, BackupVerificationPage, BatchId, BranchCatalogPage, BranchHead,
     BranchIndexAdvanceReport, BranchIndexHealth, CommitId, CommitPage, CommitReceipt,
     CommitSessionManifest, DelimitedObjectPage, Error, ErrorCode, FsckCleanupCursor,
@@ -27,7 +28,6 @@ use prolly_s3_core::{
     RestorePage, Result, RetentionPin, RetentionPinPage, StagedMutation, Tag, TagCatalogPage,
     TraversalBudget, TreeFormat, VersionSummary,
 };
-use sha2::{Digest as _, Sha256};
 use tokio::{
     sync::{mpsc, oneshot},
     time::Instant,
@@ -54,8 +54,8 @@ pub struct Client {
     checked_out: CheckedOutRef,
     provider_attestation: ProviderAttestation,
     startup_metrics: ClientStartupMetrics,
-    shard_authority_maintenance: Arc<Mutex<Option<prolly_s3_core::ShardAuthorityMaintenance>>>,
-    _branch_index_maintenance: Arc<Mutex<Option<prolly_s3_core::BranchIndexMaintenance>>>,
+    shard_authority_maintenance: Arc<Mutex<Option<silo_s3_core::ShardAuthorityMaintenance>>>,
+    _branch_index_maintenance: Arc<Mutex<Option<silo_s3_core::BranchIndexMaintenance>>>,
     _telemetry_maintenance: Arc<Mutex<Option<crate::telemetry::ClientTelemetryMaintenance>>>,
     #[cfg(feature = "foyer-cache")]
     production_node_cache: Option<Arc<crate::FoyerNodeCache>>,
@@ -89,7 +89,7 @@ pub struct ClientBuilder {
     max_cached_node_pack_bytes: Option<usize>,
     max_cached_node_locations: Option<usize>,
     max_cached_node_bytes: Option<usize>,
-    node_cache: Option<Arc<dyn prolly_s3_core::NodeCache>>,
+    node_cache: Option<Arc<dyn silo_s3_core::NodeCache>>,
     mutable_control_versions_to_retain: Option<usize>,
     journal_index_max_unindexed_events: Option<usize>,
     operation_index_leaf_entries: Option<usize>,
@@ -324,11 +324,11 @@ impl Client {
         &self.checked_out
     }
 
-    pub fn repository_id(&self) -> prolly_s3_core::RepositoryId {
+    pub fn repository_id(&self) -> silo_s3_core::RepositoryId {
         self.repository.repository_id()
     }
 
-    pub fn node_cache_snapshot(&self) -> prolly_s3_core::NodeCacheSnapshot {
+    pub fn node_cache_snapshot(&self) -> silo_s3_core::NodeCacheSnapshot {
         self.repository.node_cache_snapshot()
     }
 
@@ -426,7 +426,7 @@ impl Client {
     }
 
     async fn checkout_branch(&self, branch: String) -> Result<Self> {
-        prolly_s3_core::validate_branch(&branch)?;
+        silo_s3_core::validate_branch(&branch)?;
         self.repository.head(&branch).await?;
         let mut client = self.clone();
         client.branch = branch.clone();
@@ -435,7 +435,7 @@ impl Client {
     }
 
     async fn checkout_tag(&self, name: String) -> Result<Self> {
-        prolly_s3_core::validate_branch(&name)?;
+        silo_s3_core::validate_branch(&name)?;
         let tag = self.repository.tag(&name).await?;
         self.repository.commit(tag.target).await?;
         let mut client = self.clone();
@@ -549,12 +549,12 @@ impl Client {
             .await
     }
 
-    pub async fn commit(&self, id: CommitId) -> Result<prolly_s3_core::BucketCommit> {
+    pub async fn commit(&self, id: CommitId) -> Result<silo_s3_core::BucketCommit> {
         self.ensure_provider_qualified()?;
         self.repository.commit(id).await
     }
 
-    pub async fn log(&self, limit: usize) -> Result<Vec<(CommitId, prolly_s3_core::BucketCommit)>> {
+    pub async fn log(&self, limit: usize) -> Result<Vec<(CommitId, silo_s3_core::BucketCommit)>> {
         self.ensure_provider_qualified()?;
         match self.checked_out.target() {
             Some(target) => Ok(self
@@ -632,7 +632,7 @@ impl Client {
 
     pub async fn recover_branch(
         &self,
-        reflog: prolly_s3_core::ReflogEntryId,
+        reflog: silo_s3_core::ReflogEntryId,
         expected_head: CommitId,
         reason: impl AsRef<str>,
     ) -> Result<RefMoveReceipt> {
@@ -701,13 +701,13 @@ impl Client {
         self.repository.resume_gc().await
     }
 
-    pub async fn abandon_gc(&self, expected_epoch: prolly_s3_core::OperationId) -> Result<()> {
+    pub async fn abandon_gc(&self, expected_epoch: silo_s3_core::OperationId) -> Result<()> {
         self.ensure_provider_qualified()?;
         self.attached_branch()?;
         self.repository.abandon_gc(expected_epoch).await
     }
 
-    pub async fn abandon_incomplete_gc(&self) -> Result<prolly_s3_core::OperationId> {
+    pub async fn abandon_incomplete_gc(&self) -> Result<silo_s3_core::OperationId> {
         self.ensure_provider_qualified()?;
         self.attached_branch()?;
         self.repository.abandon_incomplete_gc().await
@@ -1795,7 +1795,7 @@ impl Client {
         &self,
         continuation: Option<String>,
         limit: usize,
-    ) -> Result<prolly_s3_core::CommitSessionCleanupReport> {
+    ) -> Result<silo_s3_core::CommitSessionCleanupReport> {
         self.ensure_provider_qualified()?;
         self.attached_branch()?;
         self.repository
@@ -1811,7 +1811,7 @@ impl Client {
         self.repository.plane().reset_metrics()
     }
 
-    pub fn provider_capabilities(&self) -> &prolly_s3_core::ProviderCapabilities {
+    pub fn provider_capabilities(&self) -> &silo_s3_core::ProviderCapabilities {
         &self.provider_attestation.body.capabilities
     }
 
@@ -2095,11 +2095,11 @@ pub struct CommitSession {
 }
 
 impl CommitSession {
-    pub fn id(&self) -> prolly_s3_core::BatchId {
+    pub fn id(&self) -> silo_s3_core::BatchId {
         self.manifest.id
     }
 
-    pub fn operation(&self) -> prolly_s3_core::OperationId {
+    pub fn operation(&self) -> silo_s3_core::OperationId {
         self.manifest.identity.operation
     }
 
@@ -2453,7 +2453,7 @@ impl ClientBuilder {
         self
     }
 
-    pub fn node_cache(mut self, cache: Arc<dyn prolly_s3_core::NodeCache>) -> Self {
+    pub fn node_cache(mut self, cache: Arc<dyn silo_s3_core::NodeCache>) -> Self {
         self.node_cache = Some(cache);
         self
     }
@@ -2557,8 +2557,8 @@ impl ClientBuilder {
             .ok_or_else(|| invalid("provider_identity is required"))?;
         validate_provider_bucket(&identity, &bucket)?;
         let telemetry_provider = match identity.bucket_class() {
-            prolly_s3_core::BucketClass::GeneralPurpose => "aws-s3",
-            prolly_s3_core::BucketClass::S3Compatible => "s3-compatible",
+            silo_s3_core::BucketClass::GeneralPurpose => "aws-s3",
+            silo_s3_core::BucketClass::S3Compatible => "s3-compatible",
         }
         .to_string();
         let signer = self

@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 430" role="img" aria-labelledby="title desc">
-  <title id="title">Four-call Prolly S3 write path</title>
+  <title id="title">Four-call SILO write path</title>
   <desc id="desc">Branch authority validation precedes a whole-object payload write, one combined Prolly commit-envelope write, and one conditional branch reference update. Only the final update makes the version visible.</desc>
   <defs>
     <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">

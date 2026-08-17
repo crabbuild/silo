@@ -1,64 +1,107 @@
-# Prolly S3
+# SILO
 
-The proposed stable compatibility, cache, telemetry, recovery, and provider
-support promises are defined in [GA-CONTRACT.md](GA-CONTRACT.md). The current
-`0.1.x` crates remain suitable for controlled pilots after the qualification
-gates in that contract pass; they are not yet a universal GA claim.
+SILO is an immutable version-control ledger layered over S3-compatible object
+storage. It gives a bucket a durable history of object versions, commits,
+branches, tags, listings, diffs, merges, recovery checkpoints, and garbage
+collection while keeping user file bodies as complete immutable provider
+objects.
 
-Prolly S3 adds repository history to a versioned S3 bucket. It stores each file
-as one immutable, content-addressed S3 object and stores directory state,
-commits, branches, tags, and indexes as Prolly trees.
+> **Repository status:** SILO is currently a private, closed-distribution
+> repository. The source inherits CrabBuild's MIT license, but no public crate
+> or binary release is made by the current CI workflows.
 
-The client is the authoritative writer for its repository prefix. Applications
-must not mutate repository data behind it.
+## Capabilities
 
-![Prolly S3 architecture](diagram/prolly-s3-architecture.svg)
-
-## What it provides
-
-- whole-file `put`, `get`, delete, list, and historical reads;
-- atomic multi-file commits;
-- branches, tags, bounded logs/diffs/reflogs, restore, and resumable merges;
-- resumable fsck, cross-provider repair, and logical backup verification;
-- durable retention pins, concurrent immutable GC, and restartable transfers;
+- whole-object `put`, `get`, delete, list, and historical reads;
+- atomic multi-file commit sessions with durable checkpoints and resume;
+- branches, tags, bounded logs, diffs, reflogs, and structural merges;
+- resumable fsck, cross-provider repair, logical backup verification, and GC;
 - branch-local writer fencing and concurrent publication across branches;
-- immutable payload and node caching, including optional Foyer caching;
-- operation-ID reconciliation for ambiguous publication responses;
-- bounded journal, operation, and ref-catalog indexes.
+- node and payload caching, optional persistent Foyer cache, and telemetry;
+- operation, journal, ref-catalog, and commit-graph indexes;
+- RustFS compatibility tests plus explicit AWS qualification gates.
 
-## Start here
+SILO deliberately does not pack or split user file bodies. One logical file is
+one complete immutable payload object. Prolly metadata nodes may be packed, but
+they never contain user payload bytes.
 
-- [Client guide](client/README.md) — setup and runnable Rust examples
-- [API guide](API.md) — task-to-method reference
-- [Architecture](PROLLY-S3-DESIGN.md) — data model and write/read paths
-- [Cache and scale design](CACHE-AND-SCALE-DESIGN.md)
-- [Operations](OPERATIONS.md)
-- [Qualification](QUALIFICATION.md)
-- [Enterprise-readiness audit](ENTERPRISE-READINESS-AUDIT.md)
-- [Durable paths](spec/prolly-s3/paths.md)
-- [State machines](spec/prolly-s3/state-machines.md)
+## Workspace
 
-Run the complete RustFS scenario suite:
+| Package | Purpose | Rust floor |
+|---|---|---:|
+| [`silo-s3-core`](core) | provider-independent ledger and durable format | 1.89 |
+| [`silo-s3-client`](client) | AWS SDK-shaped S3 provider adapter | 1.94.1 |
 
-```bash
-docker compose -f extensions/s3/docker-compose.rustfs.yml up -d
-extensions/s3/scripts/run_rustfs_examples.sh
+The public client interface is `silo_s3_client::Client`.
+
+## Quick start
+
+SILO requires an S3 or S3-compatible bucket with versioning enabled, strong
+read-after-write semantics, conditional writes, exact-version reads, and a
+repository prefix reserved exclusively for SILO.
+
+```toml
+[dependencies]
+silo-s3-client = { path = "../silo/client", default-features = false }
 ```
 
-## Boundaries
+The complete client guide, including AWS setup and runnable Rust examples, is
+in [`client/README.md`](client/README.md).
 
-This implementation deliberately does not chunk file bodies. One logical file
-is one immutable payload object, so each file must fit the configured repository
-limit and the provider's single-`PutObject` limit. Use commit sessions to batch
-many files, not to split one file.
+## Local RustFS
 
-The repository can scale its immutable trees and history without a fixed
-cardinality ceiling, but “unlimited” is not literal: provider quotas, request
-cost, latency, cache size, branch contention, and retained unreachable objects
-remain operational limits. Bounded GC reclaims unreachable immutable data,
-and history-transfer APIs preserve a source commit DAG with destination-local
-IDs and payload bindings. GC currently coordinates concurrent writer handles
-inside one authoritative process; quiesce separately running writer processes.
-Journaled ingest windows can opt into payload candidate discovery without a
-payload namespace scan; legacy/direct writers should continue using the default
-GC mode until they are migrated.
+```bash
+docker compose -f docker-compose.rustfs.yml up -d
+scripts/run_rustfs_examples.sh
+```
+
+Use `SILO_RUSTFS_*` and `SILO_S3_*` environment variables for local settings.
+The old `PROLLY_*` names are not required by the SILO repository; persisted
+repository paths and wire identifiers retain `prolly-s3` for compatibility.
+
+## Documentation
+
+- [Client guide](client/README.md)
+- [API guide](API.md)
+- [SILO architecture](SILO-DESIGN.md)
+- [Cache and scale design](CACHE-AND-SCALE-DESIGN.md)
+- [Operations](OPERATIONS.md)
+- [Qualification gates](QUALIFICATION.md)
+- [GA contract](GA-CONTRACT.md)
+- [Enterprise-readiness audit](ENTERPRISE-READINESS-AUDIT.md)
+- [Durable path specification](spec/prolly-s3/paths.md)
+- [State machines](spec/prolly-s3/state-machines.md)
+- [Architecture decisions](docs/adr)
+
+## Development
+
+```bash
+rustup show
+cargo fmt --all -- --check
+cargo test --workspace --all-features
+cargo clippy --workspace --all-targets --all-features -- -D warnings
+python3 spec/prolly-s3/conformance/verify.py
+scripts/check_clean_downstream.sh
+```
+
+The RustFS provider suite is opt-in:
+
+```bash
+SILO_S3_RUSTFS=1 \
+  cargo test --workspace -p silo-s3-client --test rustfs_repository -- --nocapture
+```
+
+AWS qualification is intentionally opt-in and requires isolated operator-owned
+buckets. See [`QUALIFICATION.md`](QUALIFICATION.md) before running it.
+
+## Compatibility promise
+
+The SILO brand and package names are new, but persisted repository identity is
+not. Domain-separated IDs, durable paths, canonical encoding, and the
+`prolly-s3` protocol namespace remain stable so repositories created before
+the extraction can be reopened by SILO.
+
+## Security
+
+Do not report a vulnerability in a public issue. See [`SECURITY.md`](SECURITY.md)
+for the private reporting process.

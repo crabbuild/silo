@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1180 680" role="img" aria-labelledby="title desc">
-  <title id="title">Prolly S3 lazy node index</title>
+  <title id="title">SILO lazy node index</title>
   <desc id="desc">A node CID follows one path through a separate immutable Prolly tree; only those verified pages are fetched and cached.</desc>
   <defs>
     <pattern id="grid" width="30" height="30" patternUnits="userSpaceOnUse"><path d="M30 0H0V30" fill="none" stroke="#334155" stroke-opacity=".22"/></pattern>

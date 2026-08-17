@@ -1,11 +1,15 @@
 [package]
-name = "prolly-s3-core"
-description = "AWS-independent bucket-level versioned object repository over Prolly trees."
+name = "silo-s3-core"
+description = "AWS-independent immutable version-control ledger over S3-compatible object storage."
 edition = "2021"
 rust-version = "1.89"
 version = "0.1.0"
-license = "MIT OR Apache-2.0"
-repository = "https://github.com/crabbuild/prolly"
+license = "MIT"
+repository = "https://github.com/crabbuild/silo"
+homepage = "https://github.com/crabbuild/silo"
+readme = "README.md"
+keywords = ["s3", "object-storage", "version-control", "prolly-tree"]
+categories = ["database-implementations", "filesystem"]
 
 [dependencies]
 async-stream = "0.3"

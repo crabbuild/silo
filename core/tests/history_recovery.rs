@@ -1,6 +1,6 @@
 use std::{collections::BTreeMap, sync::Arc, time::Duration};
 
-use prolly_s3_core::{
+use silo_s3_core::{
     ErrorCode, FixedClock, FsckPhase, ListRequest, MemoryObjectPlane, ObjectHeaders, ObjectPlane,
     ProviderPerKeyVersionLimit, Repository, RepositoryOptions, SequenceIdSource, TraversalBudget,
 };
@@ -106,7 +106,7 @@ async fn fsck_checkpoint_resumes_across_processes_and_fences_stale_workers() {
         .start_fsck_cleanup(initial.job)
         .await
         .unwrap();
-    while cleanup.phase != prolly_s3_core::FsckCleanupPhase::Complete {
+    while cleanup.phase != silo_s3_core::FsckCleanupPhase::Complete {
         cleanup = resumed_process
             .advance_fsck_cleanup(&cleanup, 1)
             .await

@@ -3,7 +3,7 @@
 mod common;
 
 use common::ExampleResult;
-use prolly_s3_client::core::{MergePhase, MergePolicy};
+use silo_s3_client::core::{MergePhase, MergePolicy};
 
 #[tokio::main]
 async fn main() -> ExampleResult {

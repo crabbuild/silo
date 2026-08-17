@@ -1,14 +1,14 @@
 //! Shared RustFS bootstrap used by the runnable examples.
 //!
 //! Every example is a standalone Cargo example. The only external dependency
-//! is the local RustFS service documented in `extensions/s3/README.md`.
+//! is the local RustFS service documented in `README.md`.
 
 use std::{sync::Arc, time::Duration};
 
 use aws_config::BehaviorVersion;
 use aws_credential_types::Credentials;
 use aws_types::region::Region;
-use prolly_s3_client::{
+use silo_s3_client::{
     core::ProviderPerKeyVersionLimit, Client, HmacAttestationSigner, ProviderIdentity,
 };
 
@@ -24,13 +24,13 @@ pub struct ExampleRepository {
 
 /// Create a versioned RustFS bucket and initialize an isolated repository.
 ///
-/// Set `PROLLY_S3_EXAMPLE_PREFIX` to reuse a stable base prefix. Without it,
+/// Set `SILO_S3_EXAMPLE_PREFIX` to reuse a stable base prefix. Without it,
 /// each run uses a unique prefix so examples can run in parallel.
 pub async fn initialize(scenario: &str) -> ExampleResult<ExampleRepository> {
-    let endpoint = environment("PROLLY_RUSTFS_ENDPOINT", "http://127.0.0.1:9000");
-    let access_key = environment("PROLLY_RUSTFS_ACCESS_KEY", "prollyadmin");
-    let secret_key = environment("PROLLY_RUSTFS_SECRET_KEY", "prolly-local-secret-change-me");
-    let bucket = environment("PROLLY_RUSTFS_BUCKET", "prolly-versioned-s3-examples");
+    let endpoint = environment("SILO_RUSTFS_ENDPOINT", "http://127.0.0.1:9000");
+    let access_key = environment("SILO_RUSTFS_ACCESS_KEY", "siloadmin");
+    let secret_key = environment("SILO_RUSTFS_SECRET_KEY", "silo-local-secret-change-me");
+    let bucket = environment("SILO_RUSTFS_BUCKET", "silo-versioned-s3-examples");
     let prefix = repository_prefix(scenario);
 
     let aws_config = aws_sdk_s3::Config::builder()
@@ -41,7 +41,7 @@ pub async fn initialize(scenario: &str) -> ExampleResult<ExampleRepository> {
             secret_key,
             None,
             None,
-            "prolly-s3-rustfs-example",
+            "silo-rustfs-example",
         ))
         .endpoint_url(&endpoint)
         .force_path_style(true)
@@ -53,7 +53,7 @@ pub async fn initialize(scenario: &str) -> ExampleResult<ExampleRepository> {
         .aws_client(aws)
         .bucket(&bucket)
         .repository_prefix(&prefix)
-        .writer(format!("prolly-s3-{scenario}-example"))
+        .writer(format!("silo-{scenario}-example"))
         .provider_identity(ProviderIdentity::s3_compatible(&endpoint, "us-east-1"))
         .provider_attestation_validity(Duration::from_secs(24 * 60 * 60))
         // This deterministic key is suitable only for a local example. Use a
@@ -75,7 +75,7 @@ pub async fn initialize(scenario: &str) -> ExampleResult<ExampleRepository> {
 
 fn repository_prefix(scenario: &str) -> String {
     let scenario = scenario.replace('_', "-");
-    if let Ok(base) = std::env::var("PROLLY_S3_EXAMPLE_PREFIX") {
+    if let Ok(base) = std::env::var("SILO_S3_EXAMPLE_PREFIX") {
         return format!("{}/{scenario}", base.trim_end_matches('/'));
     }
     let nanos = std::time::SystemTime::now()

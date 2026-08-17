@@ -16,7 +16,8 @@ use aws_sdk_s3::{
 };
 use futures_util::{stream, StreamExt};
 use md5::{Digest as _, Md5};
-use prolly_s3_client::{
+use sha2::Sha256;
+use silo_s3_client::{
     core::{
         decode_canonical, encode_canonical, BatchId, Error, ErrorCode, GcPhase,
         LogicalObjectVersionKind, MergeCursor, MergePhase, MergePolicy, ProviderPerKeyVersionLimit,
@@ -24,10 +25,9 @@ use prolly_s3_client::{
     BulkWriteOptions, CheckoutRef, Client, HmacAttestationSigner, OrderedPublicationOptions,
     ProviderIdentity, PutObjectInput,
 };
-use sha2::Sha256;
 
 fn rustfs_enabled() -> bool {
-    std::env::var("PROLLY_S3_RUSTFS").as_deref() == Ok("1")
+    std::env::var("SILO_S3_RUSTFS").as_deref() == Ok("1")
 }
 
 fn unique_name(label: &str) -> String {
@@ -44,7 +44,7 @@ fn percentile(sorted: &[Duration], percentile: usize) -> Duration {
 
 fn provider_identity() -> ProviderIdentity {
     ProviderIdentity::s3_compatible(
-        std::env::var("PROLLY_RUSTFS_ENDPOINT")
+        std::env::var("SILO_RUSTFS_ENDPOINT")
             .unwrap_or_else(|_| "http://127.0.0.1:9000".to_string()),
         "us-east-1",
     )
@@ -55,14 +55,14 @@ fn attestation_signer() -> Arc<HmacAttestationSigner> {
 }
 
 async fn rustfs_client() -> (aws_sdk_s3::Client, String) {
-    let endpoint = std::env::var("PROLLY_RUSTFS_ENDPOINT")
+    let endpoint = std::env::var("SILO_RUSTFS_ENDPOINT")
         .unwrap_or_else(|_| "http://127.0.0.1:9000".to_string());
     let access_key =
-        std::env::var("PROLLY_RUSTFS_ACCESS_KEY").unwrap_or_else(|_| "prollyadmin".to_string());
-    let secret_key = std::env::var("PROLLY_RUSTFS_SECRET_KEY")
-        .unwrap_or_else(|_| "prolly-local-secret-change-me".to_string());
-    let bucket = std::env::var("PROLLY_RUSTFS_BUCKET")
-        .unwrap_or_else(|_| "prolly-versioned-s3-tests".to_string());
+        std::env::var("SILO_RUSTFS_ACCESS_KEY").unwrap_or_else(|_| "siloadmin".to_string());
+    let secret_key = std::env::var("SILO_RUSTFS_SECRET_KEY")
+        .unwrap_or_else(|_| "silo-local-secret-change-me".to_string());
+    let bucket = std::env::var("SILO_RUSTFS_BUCKET")
+        .unwrap_or_else(|_| "silo-versioned-s3-tests".to_string());
     let config = aws_sdk_s3::Config::builder()
         .behavior_version(BehaviorVersion::latest())
         .region(Region::new("us-east-1"))
@@ -105,14 +105,14 @@ async fn rustfs_client() -> (aws_sdk_s3::Client, String) {
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn rustfs_production_cache_profile_reopens_prewarms_and_closes_cleanly() {
     if !rustfs_enabled() {
-        eprintln!("set PROLLY_S3_RUSTFS=1 to run RustFS integration tests");
+        eprintln!("set SILO_S3_RUSTFS=1 to run RustFS integration tests");
         return;
     }
 
     let (aws, bucket) = rustfs_client().await;
     let repository_prefix = unique_name("production-cache-profile");
     let cache_directory = tempfile::tempdir().unwrap();
-    let mut profile = prolly_s3_client::ProductionCacheProfile::new(cache_directory.path(), 10_000)
+    let mut profile = silo_s3_client::ProductionCacheProfile::new(cache_directory.path(), 10_000)
         .startup_prewarm(2, Duration::from_secs(10));
     profile.sizing.memory_capacity_bytes = 16 * 1024 * 1024;
     profile.sizing.disk_capacity_bytes = 128 * 1024 * 1024;
@@ -170,7 +170,7 @@ async fn rustfs_production_cache_profile_reopens_prewarms_and_closes_cleanly() {
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn rustfs_client_uses_immutable_payloads_and_fences_takeover() {
     if !rustfs_enabled() {
-        eprintln!("set PROLLY_S3_RUSTFS=1 to run RustFS integration tests");
+        eprintln!("set SILO_S3_RUSTFS=1 to run RustFS integration tests");
         return;
     }
 
@@ -280,7 +280,7 @@ async fn rustfs_client_uses_immutable_payloads_and_fences_takeover() {
         .put_object("docs/stale-.txt", b"must not upload".to_vec())
         .await
         .unwrap_err();
-    assert_eq!(error.code, prolly_s3_client::ErrorCode::PreconditionFailed);
+    assert_eq!(error.code, silo_s3_client::ErrorCode::PreconditionFailed);
     let stale_calls = old_writer.reset_s3_operation_metrics();
     assert_eq!(
         stale_calls.put_object, 0,
@@ -297,7 +297,7 @@ async fn rustfs_client_uses_immutable_payloads_and_fences_takeover() {
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn rustfs_writable_reopen_resumes_the_same_writer() {
     if !rustfs_enabled() {
-        eprintln!("set PROLLY_S3_RUSTFS=1 to run RustFS integration tests");
+        eprintln!("set SILO_S3_RUSTFS=1 to run RustFS integration tests");
         return;
     }
 
@@ -359,7 +359,7 @@ async fn rustfs_writable_reopen_resumes_the_same_writer() {
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn rustfs_ref_lifecycle_uses_catalog_shards_without_ref_scans() {
     if !rustfs_enabled() {
-        eprintln!("set PROLLY_S3_RUSTFS=1 to run RustFS integration tests");
+        eprintln!("set SILO_S3_RUSTFS=1 to run RustFS integration tests");
         return;
     }
 
@@ -410,7 +410,7 @@ async fn rustfs_ref_lifecycle_uses_catalog_shards_without_ref_scans() {
             .await
             .unwrap_err()
             .code,
-        prolly_s3_client::ErrorCode::InvalidRevision
+        silo_s3_client::ErrorCode::InvalidRevision
     );
     let detached = client.checkout(committed.id).await.unwrap();
     assert_eq!(detached.branch(), None);
@@ -460,7 +460,7 @@ async fn rustfs_ref_lifecycle_uses_catalog_shards_without_ref_scans() {
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn rustfs_detached_paged_and_streamed_lists_stay_on_the_selected_commit() {
     if !rustfs_enabled() {
-        eprintln!("set PROLLY_S3_RUSTFS=1 to run RustFS integration tests");
+        eprintln!("set SILO_S3_RUSTFS=1 to run RustFS integration tests");
         return;
     }
 
@@ -554,7 +554,7 @@ async fn rustfs_detached_paged_and_streamed_lists_stay_on_the_selected_commit() 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn rustfs_commit_session_accounts_for_publication_ticket() {
     if !rustfs_enabled() {
-        eprintln!("set PROLLY_S3_RUSTFS=1 to run RustFS integration tests");
+        eprintln!("set SILO_S3_RUSTFS=1 to run RustFS integration tests");
         return;
     }
 
@@ -631,7 +631,7 @@ async fn rustfs_commit_session_accounts_for_publication_ticket() {
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn rustfs_merge_resumes_and_publishes_structural_plan() {
     if !rustfs_enabled() {
-        eprintln!("set PROLLY_S3_RUSTFS=1 to run RustFS integration tests");
+        eprintln!("set SILO_S3_RUSTFS=1 to run RustFS integration tests");
         return;
     }
 
@@ -736,7 +736,7 @@ async fn rustfs_merge_resumes_and_publishes_structural_plan() {
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn rustfs_durable_session_resumes_without_payload_reupload() {
     if !rustfs_enabled() {
-        eprintln!("set PROLLY_S3_RUSTFS=1 to run RustFS integration tests");
+        eprintln!("set SILO_S3_RUSTFS=1 to run RustFS integration tests");
         return;
     }
 
@@ -806,7 +806,7 @@ async fn rustfs_durable_session_resumes_without_payload_reupload() {
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn rustfs_cold_open_catches_indexes_before_serving_reads() {
     if !rustfs_enabled() {
-        eprintln!("set PROLLY_S3_RUSTFS=1 to run RustFS integration tests");
+        eprintln!("set SILO_S3_RUSTFS=1 to run RustFS integration tests");
         return;
     }
 
@@ -866,7 +866,7 @@ async fn rustfs_cold_open_catches_indexes_before_serving_reads() {
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn rustfs_over_limit_index_rebuild_resumes_from_canonical_cursor() {
     if !rustfs_enabled() {
-        eprintln!("set PROLLY_S3_RUSTFS=1 to run RustFS integration tests");
+        eprintln!("set SILO_S3_RUSTFS=1 to run RustFS integration tests");
         return;
     }
 
@@ -918,8 +918,8 @@ async fn rustfs_over_limit_index_rebuild_resumes_from_canonical_cursor() {
     assert!(!reader.branch_index_health().await.unwrap().ready);
     let mut cursor = reader.start_branch_index_rebuild().await.unwrap();
     loop {
-        let bytes = prolly_s3_client::core::encode_canonical(&cursor).unwrap();
-        cursor = prolly_s3_client::core::decode_canonical(&bytes).unwrap();
+        let bytes = silo_s3_client::core::encode_canonical(&cursor).unwrap();
+        cursor = silo_s3_client::core::decode_canonical(&bytes).unwrap();
         let step = reader
             .advance_branch_index_rebuild(&cursor, 2)
             .await
@@ -942,8 +942,8 @@ async fn rustfs_over_limit_index_rebuild_resumes_from_canonical_cursor() {
 
     let mut operation = reader.start_operation_index_rebuild(&cursor).await.unwrap();
     loop {
-        let bytes = prolly_s3_client::core::encode_canonical(&operation).unwrap();
-        operation = prolly_s3_client::core::decode_canonical(&bytes).unwrap();
+        let bytes = silo_s3_client::core::encode_canonical(&operation).unwrap();
+        operation = silo_s3_client::core::decode_canonical(&bytes).unwrap();
         let step = reader
             .advance_operation_index_rebuild(&operation, 2)
             .await
@@ -992,7 +992,7 @@ async fn rustfs_over_limit_index_rebuild_resumes_from_canonical_cursor() {
 #[tokio::test(flavor = "multi_thread", worker_threads = 8)]
 async fn rustfs_streaming_bulk_write_is_bounded_batched_and_ordered() {
     if !rustfs_enabled() {
-        eprintln!("set PROLLY_S3_RUSTFS=1 to run RustFS integration tests");
+        eprintln!("set SILO_S3_RUSTFS=1 to run RustFS integration tests");
         return;
     }
     let (aws, bucket) = rustfs_client().await;
@@ -1086,7 +1086,7 @@ async fn rustfs_streaming_bulk_write_is_bounded_batched_and_ordered() {
 #[tokio::test(flavor = "multi_thread", worker_threads = 8)]
 async fn rustfs_journaled_gc_resolves_completed_batches_without_payload_heads() {
     if !rustfs_enabled() {
-        eprintln!("set PROLLY_S3_RUSTFS=1 to run RustFS integration tests");
+        eprintln!("set SILO_S3_RUSTFS=1 to run RustFS integration tests");
         return;
     }
     let (aws, bucket) = rustfs_client().await;
@@ -1141,7 +1141,7 @@ async fn rustfs_journaled_gc_resolves_completed_batches_without_payload_heads() 
 #[tokio::test(flavor = "multi_thread", worker_threads = 8)]
 async fn rustfs_ordered_publication_queue_groups_unique_keys_and_orders_duplicates() {
     if !rustfs_enabled() {
-        eprintln!("set PROLLY_S3_RUSTFS=1 to run RustFS integration tests");
+        eprintln!("set SILO_S3_RUSTFS=1 to run RustFS integration tests");
         return;
     }
     let (aws, bucket) = rustfs_client().await;
@@ -1239,7 +1239,7 @@ async fn rustfs_ordered_publication_queue_groups_unique_keys_and_orders_duplicat
 #[tokio::test(flavor = "multi_thread", worker_threads = 8)]
 async fn rustfs_streaming_bulk_failure_preserves_completed_checkpoint() {
     if !rustfs_enabled() {
-        eprintln!("set PROLLY_S3_RUSTFS=1 to run RustFS integration tests");
+        eprintln!("set SILO_S3_RUSTFS=1 to run RustFS integration tests");
         return;
     }
     let (aws, bucket) = rustfs_client().await;
@@ -1290,7 +1290,7 @@ async fn rustfs_streaming_bulk_failure_preserves_completed_checkpoint() {
 #[tokio::test(flavor = "multi_thread", worker_threads = 16)]
 #[ignore = "10K tiny-file RustFS throughput release gate"]
 async fn rustfs_streaming_bulk_exceeds_500_files_per_second() {
-    assert!(rustfs_enabled(), "set PROLLY_S3_RUSTFS=1 to run");
+    assert!(rustfs_enabled(), "set SILO_S3_RUSTFS=1 to run");
     const FILES: usize = 10_000;
     let (aws, bucket) = rustfs_client().await;
     let client = Client::builder()
@@ -1351,7 +1351,7 @@ async fn rustfs_streaming_bulk_exceeds_500_files_per_second() {
 #[tokio::test(flavor = "multi_thread", worker_threads = 16)]
 #[ignore = "10K warm-read and cursor-listing RustFS release gate"]
 async fn rustfs_warm_reads_and_cursor_listing_meet_scale_slos() {
-    assert!(rustfs_enabled(), "set PROLLY_S3_RUSTFS=1 to run");
+    assert!(rustfs_enabled(), "set SILO_S3_RUSTFS=1 to run");
     const FILES: usize = 10_000;
     const READS: usize = 100;
     let (aws, bucket) = rustfs_client().await;
@@ -1456,7 +1456,7 @@ async fn rustfs_warm_reads_and_cursor_listing_meet_scale_slos() {
 #[tokio::test(flavor = "multi_thread", worker_threads = 16)]
 #[ignore = "20K branch, structural-diff, and merge performance release gate"]
 async fn rustfs_20k_branch_diff_merge_meets_amplification_slos() {
-    assert!(rustfs_enabled(), "set PROLLY_S3_RUSTFS=1 to run");
+    assert!(rustfs_enabled(), "set SILO_S3_RUSTFS=1 to run");
     const FILES: usize = 20_000;
     const CHANGES: usize = 100;
     let (aws, bucket) = rustfs_client().await;
@@ -1698,10 +1698,10 @@ async fn rustfs_20k_branch_diff_merge_meets_amplification_slos() {
 async fn rustfs_10k_ordered_publication_queue_gate() {
     assert!(
         rustfs_enabled(),
-        "set PROLLY_S3_RUSTFS=1 to run the ordered publication gate"
+        "set SILO_S3_RUSTFS=1 to run the ordered publication gate"
     );
     const FILES: usize = 10_000;
-    let upload_concurrency = std::env::var("PROLLY_S3_ORDERED_CONCURRENCY")
+    let upload_concurrency = std::env::var("SILO_S3_ORDERED_CONCURRENCY")
         .ok()
         .and_then(|value| value.parse::<usize>().ok())
         .unwrap_or(128);
@@ -1794,11 +1794,11 @@ async fn rustfs_10k_ordered_publication_queue_gate() {
 async fn rustfs_10k_concurrent_commit_regression_gate() {
     assert!(
         rustfs_enabled(),
-        "set PROLLY_S3_RUSTFS=1 to run the 10K RustFS gate"
+        "set SILO_S3_RUSTFS=1 to run the 10K RustFS gate"
     );
 
     const COMMITS: usize = 10_000;
-    let concurrency = std::env::var("PROLLY_S3_10K_CONCURRENCY")
+    let concurrency = std::env::var("SILO_S3_10K_CONCURRENCY")
         .ok()
         .and_then(|value| value.parse::<usize>().ok())
         .unwrap_or(32);
@@ -1887,7 +1887,7 @@ async fn rustfs_10k_concurrent_commit_regression_gate() {
 async fn rustfs_gc_restart_keeps_independent_writer_fenced() {
     assert!(
         rustfs_enabled(),
-        "set PROLLY_S3_RUSTFS=1 to run the GC restart gate"
+        "set SILO_S3_RUSTFS=1 to run the GC restart gate"
     );
     let (aws, bucket) = rustfs_client().await;
     let prefix = unique_name("gc-restart-fence");
@@ -1963,7 +1963,7 @@ async fn rustfs_gc_restart_keeps_independent_writer_fenced() {
 async fn rustfs_streamed_large_object_uses_one_provider_object() {
     assert!(
         rustfs_enabled(),
-        "set PROLLY_S3_RUSTFS=1 to run the large-object RustFS gate"
+        "set SILO_S3_RUSTFS=1 to run the large-object RustFS gate"
     );
     const SIZE: usize = 65 * 1_024 * 1_024;
     let (aws, bucket) = rustfs_client().await;
@@ -2014,7 +2014,7 @@ async fn rustfs_streamed_large_object_uses_one_provider_object() {
 async fn rustfs_external_uploader_handoff_survives_restart() {
     assert!(
         rustfs_enabled(),
-        "set PROLLY_S3_RUSTFS=1 to run the external-uploader gate"
+        "set SILO_S3_RUSTFS=1 to run the external-uploader gate"
     );
     const MIB: usize = 1_024 * 1_024;
     let (aws, bucket) = rustfs_client().await;

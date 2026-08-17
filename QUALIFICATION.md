@@ -1,4 +1,4 @@
-# Prolly S3 qualification
+# SILO qualification
 
 Qualification has three layers: deterministic core tests, local RustFS
 integration, and provider-specific load tests.
@@ -6,12 +6,12 @@ integration, and provider-specific load tests.
 ## Local checks
 
 ```bash
-cargo fmt --manifest-path extensions/s3/Cargo.toml --all -- --check
-cargo clippy --manifest-path extensions/s3/Cargo.toml \
+cargo fmt --manifest-path Cargo.toml --all -- --check
+cargo clippy --manifest-path Cargo.toml \
   --workspace --all-targets --all-features -- -D warnings
-cargo test --manifest-path extensions/s3/Cargo.toml --workspace
-python3 extensions/s3/spec/prolly-s3/conformance/verify.py
-extensions/s3/scripts/check_clean_downstream.sh
+cargo test --manifest-path Cargo.toml --workspace
+python3 spec/prolly-s3/conformance/verify.py
+scripts/check_clean_downstream.sh
 ```
 
 Core tests cover canonical encoding, immutable payloads, operation
@@ -22,10 +22,10 @@ repair, retention pins, and concurrent immutable GC.
 ## RustFS
 
 ```bash
-docker compose -f extensions/s3/docker-compose.rustfs.yml up -d
-PROLLY_S3_RUSTFS=1 \
-  cargo test --manifest-path extensions/s3/Cargo.toml \
-  -p prolly-s3-client --test rustfs_repository -- --nocapture
+docker compose -f docker-compose.rustfs.yml up -d
+SILO_S3_RUSTFS=1 \
+  cargo test --manifest-path Cargo.toml \
+  -p silo-s3-client --test rustfs_repository -- --nocapture
 ```
 
 The suite verifies:
@@ -40,12 +40,12 @@ The suite verifies:
 - independent branch publication.
 
 The required pull-request workflow starts the pinned RustFS image and runs this
-suite with `PROLLY_S3_RUSTFS=1`; provider tests must not silently self-skip.
+suite with `SILO_S3_RUSTFS=1`; provider tests must not silently self-skip.
 
 Run all documented scenarios:
 
 ```bash
-extensions/s3/scripts/run_rustfs_examples.sh
+scripts/run_rustfs_examples.sh
 ```
 
 ## Scale gates
@@ -74,18 +74,18 @@ configuration, commit hash, and exact command.
 Run the exact 10K concurrent-commit gate with:
 
 ```bash
-PROLLY_S3_RUSTFS=1 PROLLY_S3_10K_CONCURRENCY=32 \
-  cargo test --manifest-path extensions/s3/Cargo.toml \
-  -p prolly-s3-client --test rustfs_repository \
+SILO_S3_RUSTFS=1 SILO_S3_10K_CONCURRENCY=32 \
+  cargo test --manifest-path Cargo.toml \
+  -p silo-s3-client --test rustfs_repository \
   rustfs_10k_concurrent_commit_regression_gate -- --ignored --nocapture
 ```
 
 Run the 20K point-read, full-list, branch, sparse-diff, and merge gate with:
 
 ```bash
-PROLLY_S3_RUSTFS=1 \
-  cargo test --release --manifest-path extensions/s3/Cargo.toml \
-  -p prolly-s3-client --test rustfs_repository \
+SILO_S3_RUSTFS=1 \
+  cargo test --release --manifest-path Cargo.toml \
+  -p silo-s3-client --test rustfs_repository \
   rustfs_20k_branch_diff_merge_meets_amplification_slos \
   -- --ignored --exact --nocapture
 ```
@@ -100,25 +100,25 @@ sparse diff below 500 ms and 1 MiB, and merge planning below one second and
 Run the ignored AWS tests only against an isolated versioned bucket:
 
 ```bash
-PROLLY_S3_AWS_QUALIFICATION=1 \
-PROLLY_S3_AWS_BUCKET=your-isolated-bucket \
-PROLLY_S3_AWS_REGION=us-west-2 \
-  cargo test --manifest-path extensions/s3/Cargo.toml \
-  -p prolly-s3-client --test aws_qualification -- --nocapture
+SILO_S3_AWS_QUALIFICATION=1 \
+SILO_S3_AWS_BUCKET=your-isolated-bucket \
+SILO_S3_AWS_REGION=us-west-2 \
+  cargo test --manifest-path Cargo.toml \
+  -p silo-s3-client --test aws_qualification -- --nocapture
 ```
 
 Also run `aws_performance_qualification` with workload-specific request bounds:
 
 ```bash
-PROLLY_S3_AWS_PERF=1 \
-PROLLY_S3_AWS_BUCKET=your-isolated-bucket \
-PROLLY_S3_AWS_REGION=us-west-2 \
-PROLLY_S3_AWS_PERF_WRITES_PER_TIER=1000 \
-PROLLY_S3_AWS_PERF_MAX_P99_MS=500 \
-PROLLY_S3_AWS_PERF_MIN_WRITES_PER_SECOND=10 \
-PROLLY_S3_AWS_PERF_MAX_CALLS_PER_WRITE=10 \
-  cargo test --manifest-path extensions/s3/Cargo.toml \
-  -p prolly-s3-client --test aws_performance_qualification \
+SILO_S3_AWS_PERF=1 \
+SILO_S3_AWS_BUCKET=your-isolated-bucket \
+SILO_S3_AWS_REGION=us-west-2 \
+SILO_S3_AWS_PERF_WRITES_PER_TIER=1000 \
+SILO_S3_AWS_PERF_MAX_P99_MS=500 \
+SILO_S3_AWS_PERF_MIN_WRITES_PER_SECOND=10 \
+SILO_S3_AWS_PERF_MAX_CALLS_PER_WRITE=10 \
+  cargo test --manifest-path Cargo.toml \
+  -p silo-s3-client --test aws_performance_qualification \
   aws_hot_branch_performance_release_gate -- --ignored --exact --nocapture
 ```
 
@@ -136,11 +136,11 @@ Do not promote on RustFS results alone. AWS qualification must cover:
 Optional dedicated policy buckets extend the AWS matrix without changing
 bucket configuration during the test:
 
-- `PROLLY_S3_AWS_BUCKET_LIFECYCLE` must contain a lifecycle rule and must be
+- `SILO_S3_AWS_BUCKET_LIFECYCLE` must contain a lifecycle rule and must be
   rejected before any probe object is written.
-- `PROLLY_S3_AWS_BUCKET_OBJECT_LOCK_DEFAULT` must have default Object Lock
+- `SILO_S3_AWS_BUCKET_OBJECT_LOCK_DEFAULT` must have default Object Lock
   retention and must be rejected before probe writes.
-- `PROLLY_S3_AWS_BUCKET_REPLICATED` must have active replication and must be
+- `SILO_S3_AWS_BUCKET_REPLICATED` must have active replication and must be
   accepted with `replication_enabled=true`; destination lifecycle, ownership,
   KMS, and replication lag remain operator assertions.
 
@@ -183,12 +183,12 @@ change counts exercise both sparse and larger deltas without changing payload
 storage:
 
 ```bash
-PROLLY_RUSTFS_PERF_STAGES=100000,500000,1000000 \
-PROLLY_RUSTFS_PERF_WRITE_CONCURRENCY=512 \
-PROLLY_RUSTFS_PERF_BRANCH_CHANGES=100,10000 \
-PROLLY_RUSTFS_PERF_LIST_PREFIXES=repo/files/000,repo/files/009 \
-  cargo run --release --manifest-path extensions/s3/Cargo.toml \
-  -p prolly-s3-client --example rustfs_small_files_benchmark
+SILO_RUSTFS_PERF_STAGES=100000,500000,1000000 \
+SILO_RUSTFS_PERF_WRITE_CONCURRENCY=512 \
+SILO_RUSTFS_PERF_BRANCH_CHANGES=100,10000 \
+SILO_RUSTFS_PERF_LIST_PREFIXES=repo/files/000,repo/files/009 \
+  cargo run --release --manifest-path Cargo.toml \
+  -p silo-s3-client --example rustfs_small_files_benchmark
 ```
 
 Keep the printed repository prefix, then run a fresh process against the same
@@ -196,37 +196,37 @@ prefix to measure reopen-cold behavior. Set `EXISTING_FILES` and a single stage
 to the repository cardinality so ingestion is skipped:
 
 ```bash
-PROLLY_RUSTFS_PERF_OPEN_MODE=open \
-PROLLY_RUSTFS_PERF_PREFIX=benchmarks/small-files/<run> \
-PROLLY_RUSTFS_PERF_EXISTING_FILES=1000000 \
-PROLLY_RUSTFS_PERF_STAGES=1000000 \
-PROLLY_RUSTFS_PERF_READ_PASSES=2 \
-PROLLY_RUSTFS_PERF_LIST_PASSES=2 \
-  cargo run --release --manifest-path extensions/s3/Cargo.toml \
-  -p prolly-s3-client --example rustfs_small_files_benchmark
+SILO_RUSTFS_PERF_OPEN_MODE=open \
+SILO_RUSTFS_PERF_PREFIX=benchmarks/small-files/<run> \
+SILO_RUSTFS_PERF_EXISTING_FILES=1000000 \
+SILO_RUSTFS_PERF_STAGES=1000000 \
+SILO_RUSTFS_PERF_READ_PASSES=2 \
+SILO_RUSTFS_PERF_LIST_PASSES=2 \
+  cargo run --release --manifest-path Cargo.toml \
+  -p silo-s3-client --example rustfs_small_files_benchmark
 ```
 
-Set `PROLLY_RUSTFS_PERF_LIST_PASSES=0` and
-`PROLLY_RUSTFS_PERF_BRANCH=false` in a fresh process to measure genuinely cold
+Set `SILO_RUSTFS_PERF_LIST_PASSES=0` and
+`SILO_RUSTFS_PERF_BRANCH=false` in a fresh process to measure genuinely cold
 point reads before a full traversal warms metadata. Read or list pass counts may
 be zero so each cache phase can be isolated.
 
-Use the same reopen form with `PROLLY_RUSTFS_PERF_FOYER_DIR` to qualify a
-persistent cache, `PROLLY_RUSTFS_PERF_REBUILD_INDEX=true` for index rebuild,
-and `PROLLY_RUSTFS_PERF_FSCK=deep` or `PROLLY_RUSTFS_PERF_GC=true` for the
+Use the same reopen form with `SILO_RUSTFS_PERF_FOYER_DIR` to qualify a
+persistent cache, `SILO_RUSTFS_PERF_REBUILD_INDEX=true` for index rebuild,
+and `SILO_RUSTFS_PERF_FSCK=deep` or `SILO_RUSTFS_PERF_GC=true` for the
 restartable maintenance gates. Every phase prints provider calls and bytes,
 wire attempts, cache behavior, and resident memory. Set the provider-specific
-`PROLLY_RUSTFS_PERF_{READ,WRITE,LIST,DELETE}_USD_PER_1000` rates to include an
+`SILO_RUSTFS_PERF_{READ,WRITE,LIST,DELETE}_USD_PER_1000` rates to include an
 estimated request cost in every metrics row; zero is the default so the harness
 never assumes an AWS or S3-compatible provider's pricing.
 
-`PROLLY_RUSTFS_PERF_TREE_TARGET_ENTRIES` creates a new repository with a
+`SILO_RUSTFS_PERF_TREE_TARGET_ENTRIES` creates a new repository with a
 bounded experimental metadata-tree geometry (maximum eight times the target
 and a 1 MiB hard node limit). Omit it to use the canonical default. Reopen runs
 must pass the same value because tree geometry is part of repository identity;
 compare cold reads, warm full listing, write amplification, and RSS before
 promoting a new default.
 
-Set `PROLLY_RUSTFS_PERF_PREWARM_LEVELS` on a fresh reopen process to measure
+Set `SILO_RUSTFS_PERF_PREWARM_LEVELS` on a fresh reopen process to measure
 the bounded startup cost and the resulting point-read tail latency separately.
 This preloads only shared metadata-tree levels and never reads payload bodies.

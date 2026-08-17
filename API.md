@@ -1,10 +1,10 @@
-# Prolly S3 API guide
+# SILO API guide
 
 Stable-release compatibility, upgrade/downgrade recovery, production cache,
 OpenTelemetry, and provider/cardinality support rules are defined in
 [`GA-CONTRACT.md`](GA-CONTRACT.md).
 
-The application-facing type is `prolly_s3_client::Client`. This guide describes
+The application-facing type is `silo_s3_client::Client`. This guide describes
 the public client surface in version 0.1.0 and separates ordinary application
 operations from administrative maintenance.
 
@@ -84,10 +84,10 @@ provider profile. Use a stable workload identity for `writer`.
 - `delete_objects` publishes many delete markers atomically.
 
 A standalone or larger logical file is one immutable content-addressed payload
-object. Bulk staging combines non-empty files up to 4 KiB into deterministic
-immutable segments capped at 4 MiB. Tree bindings carry each logical checksum
-and inclusive extent, and reads use byte ranges; empty and larger files retain
-the direct representation.
+object. Bulk staging uploads each distinct file as one complete object with
+bounded concurrency, then publishes the logical mutations in deterministic
+order. Tree bindings carry the complete payload identity; they never contain
+byte extents or repository-managed payload chunks.
 
 ### Reads
 

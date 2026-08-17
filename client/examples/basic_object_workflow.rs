@@ -5,7 +5,7 @@ mod common;
 use std::collections::BTreeMap;
 
 use common::ExampleResult;
-use prolly_s3_client::core::{LogicalObjectVersionKind, ObjectHeaders};
+use silo_s3_client::core::{LogicalObjectVersionKind, ObjectHeaders};
 
 #[tokio::main]
 async fn main() -> ExampleResult {
