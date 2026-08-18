@@ -5,8 +5,6 @@ edition = "2021"
 rust-version = "1.94.1"
 publish = false
 
-[workspace]
-
 [dependencies]
 aws-sdk-s3 = { version = "=1.140.0", default-features = false, features = ["default-https-client", "http-1x", "rt-tokio", "sigv4a"] }
 silo-s3-client = { path = "../../client", default-features = false }

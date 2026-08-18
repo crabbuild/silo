@@ -1,11 +1,13 @@
 # SILO qualification
 
-Qualification has three layers: deterministic core tests, local RustFS
+Provider qualification has three layers: deterministic core tests, local RustFS
 integration, and provider-specific load tests.
 
 The workspace and both crates declare Rust 1.94.1 as their minimum supported
 Rust version. The clean downstream gate builds both consumers with that same
-toolchain.
+toolchain. The compile-only consumer crates live in `consumer-checks/`, a
+standalone Cargo workspace intentionally excluded from the root workspace; its
+single lockfile preserves an independent consumer dependency graph.
 
 ## Local checks
 

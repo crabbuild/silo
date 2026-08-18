@@ -1,0 +1,5 @@
+# Keep these compile-only consumers outside the root workspace so they exercise
+# the published package interfaces through an independent dependency graph.
+[workspace]
+members = ["downstream-core", "downstream-client"]
+resolver = "2"

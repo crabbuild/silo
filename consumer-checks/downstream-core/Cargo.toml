@@ -5,7 +5,5 @@ edition = "2021"
 rust-version = "1.94.1"
 publish = false
 
-[workspace]
-
 [dependencies]
 silo-s3-core = { path = "../../core", default-features = false }
