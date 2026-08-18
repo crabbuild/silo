@@ -21,6 +21,6 @@
 .vscode/
 *.swp
 
-# Qualification and consumer-check output
+# Qualification and downstream-check output
 /performance-results/
-/consumer-checks/**/target/
+/checks/**/target/

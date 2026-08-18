@@ -19,7 +19,7 @@ scan_lockfile() {
 
 for lockfile in \
   "$security_root/Cargo.lock" \
-  "$security_root/consumer-checks/Cargo.lock"
+  "$security_root/checks/Cargo.lock"
 do
   if scan_lockfile "$lockfile"; then
     echo "forbidden legacy TLS or dependency in $lockfile" >&2
