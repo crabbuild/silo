@@ -2442,7 +2442,7 @@ dependencies = [
 
 [[package]]
 name = "silo-s3-client"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "async-trait",
  "aws-config",
@@ -2468,7 +2468,7 @@ dependencies = [
 
 [[package]]
 name = "silo-s3-core"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "async-stream",
  "async-trait",
