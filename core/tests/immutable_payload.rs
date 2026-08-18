@@ -97,7 +97,12 @@ fn logical_delete_has_no_physical_binding_and_provider_limits_fail_closed() {
         created_at_millis: 2_000,
         kind: LogicalObjectVersionKind::DeleteMarker,
     };
-    ObjectVersion::derive(repository, b"hot.txt", operation, delete, None).unwrap();
+    let body_for_id = delete.clone();
+    let version = ObjectVersion::derive(repository, b"hot.txt", operation, delete, None).unwrap();
+    assert_eq!(
+        version.id,
+        ObjectVersion::derive_id(repository, b"hot.txt", operation, &body_for_id).unwrap()
+    );
 
     assert!(ProviderPerKeyVersionLimit::Unlimited
         .validate_immutable_payload_profile(100)
