@@ -4,6 +4,14 @@ All notable SILO changes will be recorded here.
 
 ## Unreleased
 
+## 0.1.1 - 2026-08-17
+
+### Documentation
+
+- Expanded the `silo-s3-core` package guide with provider contracts, durable
+  invariants, metadata-lane architecture, bulk-ingest guidance, maintenance
+  workflows, and the complete public API map.
+
 ## 0.1.0 - 2026-08-17
 
 ### Added
