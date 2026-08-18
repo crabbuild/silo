@@ -23,7 +23,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           persist-credentials: false
       - uses: dtolnay/rust-toolchain@1.94.1
@@ -56,7 +56,7 @@ jobs:
     env:
       SILO_RUST_TOOLCHAIN: 1.94.1
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           persist-credentials: false
       - uses: dtolnay/rust-toolchain@1.94.1
@@ -81,7 +81,7 @@ jobs:
       SILO_RUSTFS_SECRET_KEY: silo-local-secret-change-me
       SILO_RUSTFS_RPC_SECRET: silo-local-rpc-secret-change-me
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           persist-credentials: false
       - uses: dtolnay/rust-toolchain@1.94.1
