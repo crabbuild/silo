@@ -181,12 +181,9 @@ Dependency and security checks require `cargo-deny`:
 scripts/check_dependency_security.sh
 ```
 
-RustFS and AWS qualification are intentionally opt-in. AWS runs require
-isolated operator-owned buckets and credentials; read
-[`QUALIFICATION.md`](QUALIFICATION.md) before running them. Performance
-envelopes and release criteria are documented in
-[`PERFORMANCE-ENVELOPE-2026-08-13.md`](PERFORMANCE-ENVELOPE-2026-08-13.md),
-[`GA-CONTRACT.md`](GA-CONTRACT.md), and [`RELEASING.md`](RELEASING.md).
+RustFS and AWS qualification tests are intentionally opt-in. AWS runs require
+isolated operator-owned buckets and credentials; see the provider qualification
+tests in [`client/tests`](client/tests) before running them.
 
 ## Documentation
 
@@ -194,11 +191,7 @@ envelopes and release criteria are documented in
 - [API guide](API.md)
 - [SILO architecture](SILO-DESIGN.md)
 - [Cache and scale design](CACHE-AND-SCALE-DESIGN.md)
-- [Operations](OPERATIONS.md)
-- [Qualification gates](QUALIFICATION.md)
-- [GA contract](GA-CONTRACT.md)
 - [Enterprise-readiness audit](ENTERPRISE-READINESS-AUDIT.md)
-- [Performance envelope](PERFORMANCE-ENVELOPE-2026-08-13.md)
 - [Durable path specification](spec/prolly-s3/paths.md)
 - [State machines](spec/prolly-s3/state-machines.md)
 - [Architecture decisions](docs/adr)
@@ -218,12 +211,13 @@ a versioned compatibility decision and golden fixtures. See the
 
 SILO is maintained as an open-source CrabBuild repository. See
 [`CONTRIBUTING.md`](CONTRIBUTING.md) for the pull-request checks and change
-rules, and [`RELEASING.md`](RELEASING.md) for the public release checklist.
+rules. Tagged release automation is defined in
+[`.github/workflows/release.yml`](.github/workflows/release.yml).
 
 The source is available under the [MIT License](LICENSE).
 
 ## Security
 
-Do not report a vulnerability in a public issue. See
-[`SECURITY.md`](SECURITY.md) for the private vulnerability-reporting process
-and credential handling requirements.
+Do not report a vulnerability in a public issue. Use GitHub's private
+vulnerability reporting for `crabbuild/silo` and do not include credentials,
+provider endpoints, repository prefixes, or repository data in a report.
