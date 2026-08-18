@@ -14,7 +14,7 @@ S3-backed repository layer and provider workflows around those trees.
 > repository is pre-1.0; tagged releases publish public GitHub release bundles,
 > while crates.io publication remains a separately controlled release step.
 
-![SILO architecture](diagram/prolly-s3-architecture.svg)
+![SILO architecture](diagram/prolly-s3-architecture.svg?rev=arrowhead-v2)
 
 ## Why SILO
 
