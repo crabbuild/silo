@@ -3,7 +3,7 @@
   <desc id="desc">An application uses the SILO client. Each logical payload is stored as one complete immutable provider object, while Prolly metadata maps logical keys to exact object identities and publishes commits through a branch reference.</desc>
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#08111f"/><stop offset="1" stop-color="#111b34"/></linearGradient>
-    <marker id="arrow" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto"><path d="M0 0 9 3.5 0 7Z" fill="#6ee7f9"/></marker>
+    <marker id="arrow" markerWidth="9" markerHeight="7" refX="9" refY="3.5" orient="auto"><path d="M0 0 9 3.5 0 7Z" fill="#6ee7f9"/></marker>
     <style>.h{font:700 22px ui-sans-serif,system-ui;fill:#f8fafc}.s{font:400 13px ui-sans-serif,system-ui;fill:#9fb0c8}.t{font:700 16px ui-sans-serif,system-ui;fill:#f8fafc}.b{font:400 13px ui-sans-serif,system-ui;fill:#c7d2e3}.k{font:600 12px ui-monospace,SFMono-Regular,monospace;fill:#7dd3fc}.box{fill:#12223b;stroke:#385173;stroke-width:1.5}.data{fill:#102f35;stroke:#2dd4bf;stroke-width:1.5}.meta{fill:#241d42;stroke:#a78bfa;stroke-width:1.5}.line{fill:none;stroke:#6ee7f9;stroke-width:2;marker-end:url(#arrow)}</style>
   </defs>
   <rect width="1120" height="650" rx="18" fill="url(#bg)"/>
