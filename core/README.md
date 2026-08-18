@@ -66,9 +66,9 @@ Application or silo-s3-client
              ▼
       Repository<P: ObjectPlane>
        ┌─────────────────────────────┐
-       │ Prolly state and version     │
+       │ Prolly state and version    │
        │ trees, commits, refs, DAG   │
-       │ journals, indexes, jobs      │
+       │ journals, indexes, jobs     │
        └──────────────┬──────────────┘
                       │ immutable and conditional object operations
                       ▼
