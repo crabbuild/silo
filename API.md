@@ -8,6 +8,10 @@ Goal: choose the right client method, understand the snapshot and consistency ru
 
 The client adapter uses the AWS SDK for Rust. The same adapter talks to Amazon S3 and compatible services that pass SILO’s provider qualification probes. The repository format, upgrade rules, cache contract, and production support posture are defined in [`GA-CONTRACT.md`](GA-CONTRACT.md).
 
+SILO uses [Prolly trees](https://github.com/crabbuild/prolly) for
+content-addressed metadata and history. This guide focuses on the S3-backed
+repository API around those trees.
+
 ## Choose an API by task
 
 Use this table to find the shortest path to a common operation:

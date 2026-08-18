@@ -45,7 +45,8 @@ branch ref
   → immutable payload
 ```
 
-The journal-derived index is a Prolly tree of content ID to node-pack range.
+The journal-derived index is a [Prolly tree](https://github.com/crabbuild/prolly)
+of content ID to node-pack range.
 Its small mutable head advances behind the publication journal. Normal point
 lookups never list the repository namespace.
 

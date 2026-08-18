@@ -6,6 +6,10 @@ branches, tags, listings, diffs, merges, recovery checkpoints, and garbage
 collection while keeping user file bodies as complete immutable provider
 objects.
 
+SILO uses [Prolly](https://github.com/crabbuild/prolly) trees for
+content-addressed metadata, snapshots, and history. This repository adds the
+S3-backed repository layer and provider workflows around those trees.
+
 > **Repository status:** SILO is open source under the MIT License. The
 > repository is pre-1.0; tagged releases publish public GitHub release bundles,
 > while crates.io publication remains a separately controlled release step.

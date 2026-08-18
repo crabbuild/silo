@@ -1,8 +1,8 @@
 # SILO client
 
 The client turns a versioned S3 bucket into a branchable file repository.
-Files remain ordinary whole S3 objects under immutable derived keys; Prolly
-trees provide snapshots and history.
+Files remain ordinary whole S3 objects under immutable derived keys; [Prolly
+trees](https://github.com/crabbuild/prolly) provide snapshots and history.
 
 ## Requirements
 
