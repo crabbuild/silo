@@ -29,6 +29,18 @@ jobs:
           shared-key: silo-release-rust-1.94.1
       - name: Toolchain
         run: rustup show active-toolchain && cargo --version
+      - name: Verify release version
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          tag_version="${RELEASE_TAG#v}"
+          expected="${tag_version%%-*}"
+          actual="$(cargo metadata --locked --format-version 1 --no-deps | python3 -c 'import json, sys; packages = json.load(sys.stdin)["packages"]; versions = {p["version"] for p in packages if p["name"] in {"silo-s3-core", "silo-s3-client"}}; assert len(versions) == 1, versions; print(next(iter(versions)))')"
+          test "$actual" = "$expected" || {
+            echo "release tag $RELEASE_TAG does not match crate version $actual" >&2
+            exit 1
+          }
       - name: Format
         run: cargo fmt --all -- --check
       - name: Strict Clippy
