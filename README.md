@@ -6,9 +6,9 @@ branches, tags, listings, diffs, merges, recovery checkpoints, and garbage
 collection while keeping user file bodies as complete immutable provider
 objects.
 
-> **Repository status:** SILO is currently a private, closed-distribution
-> repository. The source is MIT-licensed, but the current CI workflows do not
-> publish a public crate or binary release.
+> **Repository status:** SILO is open source under the MIT License. The
+> repository is pre-1.0; tagged releases publish public GitHub release bundles,
+> while crates.io publication remains a separately controlled release step.
 
 ![SILO architecture](diagram/prolly-s3-architecture.svg)
 
@@ -49,7 +49,7 @@ handed to SILO for whole-object verification and publication.
 
 | Package | Purpose | Rust floor |
 |---|---|---:|
-| [`silo-s3-core`](core) | Provider-independent ledger and durable format | 1.89 |
+| [`silo-s3-core`](core) | Provider-independent ledger and durable format | 1.94.1 |
 | [`silo-s3-client`](client) | AWS SDK-shaped S3 provider adapter | 1.94.1 |
 
 The workspace toolchain is pinned to Rust 1.94.1 in
@@ -75,7 +75,8 @@ manage objects inside the reserved repository prefix outside SILO.
 
 ## Quick start
 
-SILO is consumed from this workspace while it remains private:
+SILO is consumed from this workspace while crates.io publication is not yet
+automated:
 
 ```toml
 [dependencies]
@@ -180,12 +181,9 @@ Dependency and security checks require `cargo-deny`:
 scripts/check_dependency_security.sh
 ```
 
-RustFS and AWS qualification are intentionally opt-in. AWS runs require
-isolated operator-owned buckets and credentials; read
-[`QUALIFICATION.md`](QUALIFICATION.md) before running them. Performance
-envelopes and release criteria are documented in
-[`PERFORMANCE-ENVELOPE-2026-08-13.md`](PERFORMANCE-ENVELOPE-2026-08-13.md),
-[`GA-CONTRACT.md`](GA-CONTRACT.md), and [`RELEASING.md`](RELEASING.md).
+RustFS and AWS qualification tests are intentionally opt-in. AWS runs require
+isolated operator-owned buckets and credentials; see the provider qualification
+tests in [`client/tests`](client/tests) before running them.
 
 ## Documentation
 
@@ -193,11 +191,7 @@ envelopes and release criteria are documented in
 - [API guide](API.md)
 - [SILO architecture](SILO-DESIGN.md)
 - [Cache and scale design](CACHE-AND-SCALE-DESIGN.md)
-- [Operations](OPERATIONS.md)
-- [Qualification gates](QUALIFICATION.md)
-- [GA contract](GA-CONTRACT.md)
 - [Enterprise-readiness audit](ENTERPRISE-READINESS-AUDIT.md)
-- [Performance envelope](PERFORMANCE-ENVELOPE-2026-08-13.md)
 - [Durable path specification](spec/prolly-s3/paths.md)
 - [State machines](spec/prolly-s3/state-machines.md)
 - [Architecture decisions](docs/adr)
@@ -215,14 +209,15 @@ a versioned compatibility decision and golden fixtures. See the
 
 ## Contributing, releases, and license
 
-SILO is maintained as a private CrabBuild repository. See
+SILO is maintained as an open-source CrabBuild repository. See
 [`CONTRIBUTING.md`](CONTRIBUTING.md) for the pull-request checks and change
-rules, and [`RELEASING.md`](RELEASING.md) for the private release checklist.
+rules. Tagged release automation is defined in
+[`.github/workflows/release.yml`](.github/workflows/release.yml).
 
 The source is available under the [MIT License](LICENSE).
 
 ## Security
 
-Do not report a vulnerability in a public issue. See
-[`SECURITY.md`](SECURITY.md) for the private reporting process and credential
-handling requirements.
+Do not report a vulnerability in a public issue. Use GitHub's private
+vulnerability reporting for `crabbuild/silo` and do not include credentials,
+provider endpoints, repository prefixes, or repository data in a report.

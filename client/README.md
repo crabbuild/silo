@@ -92,8 +92,9 @@ with the `SILO_RUSTFS_*` environment variables.
 | [`integrity_gc_and_observability.rs`](examples/integrity_gc_and_observability.rs) | Deep fsck, cache prewarm, metrics, retention pins, and GC |
 
 The default credentials and attestation key are local-demo values. Never use
-them in a shared or production environment. See [qualification](../QUALIFICATION.md)
-before adapting an example to AWS.
+them in a shared or production environment. Review the provider qualification
+tests in [`tests/aws_qualification.rs`](tests/aws_qualification.rs) before
+adapting an example to AWS.
 
 ## Read and write files
 
@@ -621,8 +622,8 @@ let client = Client::builder()
     .await?;
 ```
 
-Metric names and initial alert thresholds are defined in
-[`GA-CONTRACT.md`](../GA-CONTRACT.md).
+Metric names and alert thresholds should be defined by the application embedding
+the client and its production observability policy.
 
 ## Performance model
 
@@ -685,4 +686,4 @@ latency or cost claim substitutes for AWS qualification.
 
 See the runnable
 [`rustfs_versioned_bucket`](examples/rustfs_versioned_bucket.rs) example and
-the repository [qualification guide](../QUALIFICATION.md).
+the repository's [development checks](../README.md#development-and-qualification).

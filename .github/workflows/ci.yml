@@ -6,33 +6,42 @@ on:
     branches: [main]
   workflow_dispatch:
 
+concurrency:
+  group: silo-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
 env:
   CARGO_TERM_COLOR: always
-  CLIENT_TOOLCHAIN: 1.94.1
-  CORE_TOOLCHAIN: 1.89.0
+  RUST_TOOLCHAIN: 1.94.1
 
 jobs:
   quality:
-    name: Format, lint, test, and conformance
+    name: Format, lint, test, package, and conformance
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
       - uses: dtolnay/rust-toolchain@1.94.1
         with:
           components: rustfmt, clippy
       - uses: Swatinem/rust-cache@v2
         with:
-          shared-key: silo-quality-1.94.1
+          shared-key: silo-quality-rust-1.94.1
+      - name: Toolchain
+        run: rustup show active-toolchain && cargo --version
       - name: Format
         run: cargo fmt --all -- --check
       - name: Strict Clippy
         run: cargo clippy --locked --workspace --all-targets --all-features -- -D warnings
       - name: Tests
         run: cargo test --locked --workspace --all-features
+      - name: Package crates
+        run: cargo package --locked --workspace --all-features
       - name: Protocol conformance
         run: python3 spec/prolly-s3/conformance/verify.py
       - name: Dependency advisories
@@ -44,17 +53,22 @@ jobs:
     name: Declared MSRV and clean downstream
     runs-on: ubuntu-24.04
     timeout-minutes: 30
+    env:
+      SILO_RUST_TOOLCHAIN: 1.94.1
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
       - uses: dtolnay/rust-toolchain@1.94.1
-      - run: rustup toolchain install "$CORE_TOOLCHAIN" --profile minimal
-      - name: Core MSRV
-        run: cargo +"$CORE_TOOLCHAIN" check --locked -p silo-s3-core
-      - name: Client baseline and minimal feature set
-        run: |
-          cargo +"$CLIENT_TOOLCHAIN" check --locked --workspace --all-features
-          cargo +"$CLIENT_TOOLCHAIN" check --locked -p silo-s3-client --no-default-features
+      - name: Toolchain
+        run: rustup show active-toolchain && cargo --version
+      - name: Workspace check at declared MSRV
+        run: cargo check --locked --workspace --all-features
+      - name: Client minimal feature set
+        run: cargo check --locked -p silo-s3-client --no-default-features
       - name: Clean downstream consumers
+        env:
+          SILO_S3_CARGO_TARGET_DIR: ${{ runner.temp }}/silo-downstream-target
         run: scripts/check_clean_downstream.sh
 
   rustfs:
@@ -67,11 +81,15 @@ jobs:
       SILO_RUSTFS_SECRET_KEY: silo-local-secret-change-me
       SILO_RUSTFS_RPC_SECRET: silo-local-rpc-secret-change-me
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
       - uses: dtolnay/rust-toolchain@1.94.1
       - uses: Swatinem/rust-cache@v2
         with:
-          shared-key: silo-rustfs-1.94.1
+          shared-key: silo-rustfs-rust-1.94.1
+      - name: Toolchain
+        run: rustup show active-toolchain && cargo --version
       - name: Configure RustFS data path
         run: echo "SILO_RUSTFS_DATA_DIR=$RUNNER_TEMP/silo-rustfs-data" >> "$GITHUB_ENV"
       - name: Prepare RustFS data directory
@@ -92,4 +110,4 @@ jobs:
         run: docker compose -f docker-compose.rustfs.yml logs --no-color
       - name: Stop RustFS
         if: always()
-        run: docker compose -f docker-compose.rustfs.yml down -v
+        run: docker compose -f docker-compose.rustfs.yml down --volumes --remove-orphans

@@ -1,12 +1,12 @@
 [package]
 name = "silo-s3-client"
 description = "AWS SDK-shaped client for the SILO immutable version-control ledger."
-edition = "2021"
-rust-version = "1.94.1"
+edition.workspace = true
+rust-version.workspace = true
 version = "0.1.0"
-license = "MIT"
-repository = "https://github.com/crabbuild/silo"
-homepage = "https://github.com/crabbuild/silo"
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
 readme = "README.md"
 keywords = ["s3", "object-storage", "version-control", "prolly-tree"]
 categories = ["database-implementations", "filesystem"]

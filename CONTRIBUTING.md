@@ -1,6 +1,6 @@
 # Contributing to SILO
 
-SILO is currently a private CrabBuild repository. Contributions are reviewed
+SILO is an open-source CrabBuild repository. Contributions are reviewed
 through pull requests and must preserve the durable repository contract.
 
 ## Before opening a pull request
