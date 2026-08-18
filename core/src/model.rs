@@ -1633,15 +1633,24 @@ impl ObjectVersion {
         body: &LogicalObjectVersionBody,
     ) -> Result<ObjectVersionId> {
         let body_bytes = encode_canonical(body)?;
-        Ok(ObjectVersionId(domain_hash(
+        Ok(Self::derive_id_from_body_bytes(
+            repository,
+            key,
+            operation,
+            &body_bytes,
+        ))
+    }
+
+    fn derive_id_from_body_bytes(
+        repository: RepositoryId,
+        key: &[u8],
+        operation: OperationId,
+        body_bytes: &[u8],
+    ) -> ObjectVersionId {
+        ObjectVersionId(domain_hash(
             b"prolly-s3/object-version",
-            &[
-                repository.as_bytes(),
-                key,
-                operation.as_bytes(),
-                &body_bytes,
-            ],
-        )))
+            &[repository.as_bytes(), key, operation.as_bytes(), body_bytes],
+        ))
     }
 
     pub fn derive(
@@ -1652,8 +1661,9 @@ impl ObjectVersion {
         binding: Option<PayloadBinding>,
     ) -> Result<Self> {
         validate_physical_object_version(&body, binding.as_ref())?;
+        let body_bytes = encode_canonical(&body)?;
         Ok(Self {
-            id: Self::derive_id(repository, key, operation, &body)?,
+            id: Self::derive_id_from_body_bytes(repository, key, operation, &body_bytes),
             body,
             binding,
         })
