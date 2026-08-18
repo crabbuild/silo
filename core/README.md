@@ -3,7 +3,8 @@
 The AWS-independent core of [SILO](https://github.com/crabuild/silo), an
 immutable version-control ledger layered over S3-compatible object storage.
 
-This crate owns the durable repository model, Prolly-tree state, commits,
+This crate owns the durable repository model and [Prolly tree
+state](https://github.com/crabbuild/prolly), commits,
 branches, tags, journals, recovery, fsck, merge planning, and garbage
 collection. The provider adapter lives in `silo-s3-client`.
 

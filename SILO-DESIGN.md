@@ -4,7 +4,8 @@
 
 SILO is a thin repository layer over a versioned S3 bucket. The client is
 the authoritative writer. It stores each file as one immutable payload and uses
-Prolly trees to track names, metadata, commits, branches, and history.
+[Prolly trees](https://github.com/crabbuild/prolly) to track names, metadata,
+commits, branches, and history.
 
 There is one durable format and one public client. The implementation does not
 dual-write, migrate, or negotiate legacy repository protocols.

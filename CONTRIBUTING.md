@@ -1,7 +1,8 @@
 # Contributing to SILO
 
 SILO is an open-source CrabBuild repository. Contributions are reviewed
-through pull requests and must preserve the durable repository contract.
+through pull requests and must preserve the durable repository contract. SILO
+was extracted from the [Prolly repository](https://github.com/crabbuild/prolly).
 
 ## Before opening a pull request
 
