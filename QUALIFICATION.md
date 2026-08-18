@@ -3,6 +3,10 @@
 Qualification has three layers: deterministic core tests, local RustFS
 integration, and provider-specific load tests.
 
+The workspace and both crates declare Rust 1.94.1 as their minimum supported
+Rust version. The clean downstream gate builds both consumers with that same
+toolchain.
+
 ## Local checks
 
 ```bash

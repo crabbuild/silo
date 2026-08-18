@@ -1,8 +1,8 @@
 # Security policy
 
-SILO is currently maintained in a private repository and is not a public
-service. Do not disclose credentials, provider endpoints, repository prefixes,
-or repository data in bug reports.
+SILO is an open-source library, not a hosted public service. Do not disclose
+credentials, provider endpoints, repository prefixes, or repository data in
+bug reports.
 
 ## Reporting a vulnerability
 

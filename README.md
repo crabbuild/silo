@@ -6,9 +6,9 @@ branches, tags, listings, diffs, merges, recovery checkpoints, and garbage
 collection while keeping user file bodies as complete immutable provider
 objects.
 
-> **Repository status:** SILO is currently a private, closed-distribution
-> repository. The source is MIT-licensed, but the current CI workflows do not
-> publish a public crate or binary release.
+> **Repository status:** SILO is open source under the MIT License. The
+> repository is pre-1.0; tagged releases publish public GitHub release bundles,
+> while crates.io publication remains a separately controlled release step.
 
 ![SILO architecture](diagram/prolly-s3-architecture.svg)
 
@@ -49,7 +49,7 @@ handed to SILO for whole-object verification and publication.
 
 | Package | Purpose | Rust floor |
 |---|---|---:|
-| [`silo-s3-core`](core) | Provider-independent ledger and durable format | 1.89 |
+| [`silo-s3-core`](core) | Provider-independent ledger and durable format | 1.94.1 |
 | [`silo-s3-client`](client) | AWS SDK-shaped S3 provider adapter | 1.94.1 |
 
 The workspace toolchain is pinned to Rust 1.94.1 in
@@ -75,7 +75,8 @@ manage objects inside the reserved repository prefix outside SILO.
 
 ## Quick start
 
-SILO is consumed from this workspace while it remains private:
+SILO is consumed from this workspace while crates.io publication is not yet
+automated:
 
 ```toml
 [dependencies]
@@ -215,14 +216,14 @@ a versioned compatibility decision and golden fixtures. See the
 
 ## Contributing, releases, and license
 
-SILO is maintained as a private CrabBuild repository. See
+SILO is maintained as an open-source CrabBuild repository. See
 [`CONTRIBUTING.md`](CONTRIBUTING.md) for the pull-request checks and change
-rules, and [`RELEASING.md`](RELEASING.md) for the private release checklist.
+rules, and [`RELEASING.md`](RELEASING.md) for the public release checklist.
 
 The source is available under the [MIT License](LICENSE).
 
 ## Security
 
 Do not report a vulnerability in a public issue. See
-[`SECURITY.md`](SECURITY.md) for the private reporting process and credential
-handling requirements.
+[`SECURITY.md`](SECURITY.md) for the private vulnerability-reporting process
+and credential handling requirements.
